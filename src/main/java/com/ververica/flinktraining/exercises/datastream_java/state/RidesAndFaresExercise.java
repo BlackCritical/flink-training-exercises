@@ -21,7 +21,8 @@ import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
 import com.ververica.flinktraining.exercises.datastream_java.sources.TaxiFareSource;
 import com.ververica.flinktraining.exercises.datastream_java.sources.TaxiRideSource;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.exercises.datastream_java.utils.MissingSolutionException;
+import org.apache.flink.api.common.state.MapState;
+import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
@@ -33,61 +34,72 @@ import org.apache.flink.util.Collector;
 /**
  * The "Stateful Enrichment" exercise of the Flink training
  * (http://training.ververica.com).
- *
+ * <p>
  * The goal for this exercise is to enrich TaxiRides with fare information.
- *
+ * <p>
  * Parameters:
  * -rides path-to-input-file
  * -fares path-to-input-file
- *
  */
 public class RidesAndFaresExercise extends ExerciseBase {
-	public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
 
-		ParameterTool params = ParameterTool.fromArgs(args);
-		final String ridesFile = params.get("rides", pathToRideData);
-		final String faresFile = params.get("fares", pathToFareData);
+        ParameterTool params = ParameterTool.fromArgs(args);
+        final String ridesFile = params.get("rides", pathToRideData);
+        final String faresFile = params.get("fares", pathToFareData);
 
-		final int delay = 60;					// at most 60 seconds of delay
-		final int servingSpeedFactor = 600; 	// 30 minutes worth of events are served every second
+        final int delay = 60;                    // at most 60 seconds of delay
+        final int servingSpeedFactor = 600;    // 30 minutes worth of events are served every second
 
-		// set up streaming execution environment
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		env.setParallelism(ExerciseBase.parallelism);
+        // set up streaming execution environment
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(ExerciseBase.parallelism);
 
-		DataStream<TaxiRide> rides = env
-				.addSource(rideSourceOrTest(new TaxiRideSource(ridesFile, delay, servingSpeedFactor)))
-				.filter((TaxiRide ride) -> ride.isStart)
-				.keyBy("rideId");
+        DataStream<TaxiRide> rides = env
+            .addSource(rideSourceOrTest(new TaxiRideSource(ridesFile, delay, servingSpeedFactor)))
+            .filter((TaxiRide ride) -> ride.isStart)
+            .keyBy("rideId");
 
-		DataStream<TaxiFare> fares = env
-				.addSource(fareSourceOrTest(new TaxiFareSource(faresFile, delay, servingSpeedFactor)))
-				.keyBy("rideId");
+        DataStream<TaxiFare> fares = env
+            .addSource(fareSourceOrTest(new TaxiFareSource(faresFile, delay, servingSpeedFactor)))
+            .keyBy("rideId");
 
-		DataStream<Tuple2<TaxiRide, TaxiFare>> enrichedRides = rides
-				.connect(fares)
-				.flatMap(new EnrichmentFunction());
+        DataStream<Tuple2<TaxiRide, TaxiFare>> enrichedRides = rides
+            .connect(fares)
+            .flatMap(new EnrichmentFunction());
 
-		printOrTest(enrichedRides);
+        printOrTest(enrichedRides);
 
-		env.execute("Join Rides with Fares (java RichCoFlatMap)");
-	}
+        env.execute("Join Rides with Fares (java RichCoFlatMap)");
+    }
 
-	public static class EnrichmentFunction extends RichCoFlatMapFunction<TaxiRide, TaxiFare, Tuple2<TaxiRide, TaxiFare>> {
+    public static class EnrichmentFunction extends RichCoFlatMapFunction<TaxiRide, TaxiFare, Tuple2<TaxiRide, TaxiFare>> {
 
-		@Override
-		public void open(Configuration config) throws Exception {
-			throw new MissingSolutionException();
-		}
+        private MapState<Long, TaxiRide> mapIdToRide;
+        private MapState<Long, TaxiFare> mapIdToFare;
 
-		@Override
-		public void flatMap1(TaxiRide ride, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
-			System.out.println(ride);
-		}
+        @Override
+        public void open(Configuration config) throws Exception {
+            mapIdToRide = getRuntimeContext().getMapState(new MapStateDescriptor<>("mapIdToRide", Long.class, TaxiRide.class));
+            mapIdToFare = getRuntimeContext().getMapState(new MapStateDescriptor<>("mapIdToFare", Long.class, TaxiFare.class));
+        }
 
-		@Override
-		public void flatMap2(TaxiFare fare, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
-			System.out.println(fare);
-		}
-	}
+        @Override
+        public void flatMap1(TaxiRide ride, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
+			if (mapIdToFare.get(ride.rideId) == null) {
+				mapIdToRide.put(ride.rideId, ride);
+			} else {
+				out.collect(new Tuple2<>(ride, mapIdToFare.get(ride.rideId) ));
+			}
+        }
+
+        @Override
+        public void flatMap2(TaxiFare fare, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
+			if (mapIdToRide.get(fare.rideId) == null) {
+				mapIdToFare.put(fare.rideId, fare);
+			} else {
+				out.collect(new Tuple2<>(mapIdToRide.get(fare.rideId),fare ));
+			}
+        }
+    }
 }
