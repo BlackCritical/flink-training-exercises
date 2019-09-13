@@ -16,10 +16,10 @@
 
 package com.ververica.flinktraining.exercises.datastream_java.windows;
 
+import com.google.common.collect.Lists;
 import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiFare;
 import com.ververica.flinktraining.exercises.datastream_java.testing.TaxiRideTestBase;
 import com.ververica.flinktraining.solutions.datastream_java.windows.HourlyTipsSolution;
-import com.google.common.collect.Lists;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -32,7 +32,7 @@ import static org.junit.Assert.assertEquals;
 
 public class HourlyTipsTest extends TaxiRideTestBase<Tuple3<Long, Long, Float>> {
 
-	static Testable javaExercise = () -> HourlyTipsExercise.main(new String[]{});
+	private static Testable javaExercise = () -> HourlyTipsExercise.main(new String[]{});
 
 	@Test
 	public void testOneDriverOneTip() throws Exception {
@@ -42,7 +42,7 @@ public class HourlyTipsTest extends TaxiRideTestBase<Tuple3<Long, Long, Float>> 
 				one
 		);
 
-		Tuple3<Long, Long, Float> max = new Tuple3<Long, Long, Float>(t(60), 1L, 1.0F);
+		Tuple3<Long, Long, Float> max = new Tuple3<>(t(60), 1L, 1.0F);
 
 		ArrayList<Tuple3<Long, Long, Float>> expected = Lists.newArrayList(max);
 
@@ -61,8 +61,8 @@ public class HourlyTipsTest extends TaxiRideTestBase<Tuple3<Long, Long, Float>> 
 				tenIn2
 		);
 
-		Tuple3<Long, Long, Float> hour1 = new Tuple3<Long, Long, Float>(t(60), 1L, 6.0F);
-		Tuple3<Long, Long, Float> hour2 = new Tuple3<Long, Long, Float>(t(120), 1L, 10.0F);
+		Tuple3<Long, Long, Float> hour1 = new Tuple3<>(t(60), 1L, 6.0F);
+		Tuple3<Long, Long, Float> hour2 = new Tuple3<>(t(120), 1L, 10.0F);
 
 		ArrayList<Tuple3<Long, Long, Float>> expected = Lists.newArrayList(hour1, hour2);
 
@@ -83,8 +83,8 @@ public class HourlyTipsTest extends TaxiRideTestBase<Tuple3<Long, Long, Float>> 
 				twentyFor2In2
 		);
 
-		Tuple3<Long, Long, Float> hour1 = new Tuple3<Long, Long, Float>(t(60), 1L, 6.0F);
-		Tuple3<Long, Long, Float> hour2 = new Tuple3<Long, Long, Float>(t(120), 2L, 20.0F);
+		Tuple3<Long, Long, Float> hour1 = new Tuple3<>(t(60), 1L, 6.0F);
+		Tuple3<Long, Long, Float> hour2 = new Tuple3<>(t(120), 2L, 20.0F);
 
 		ArrayList<Tuple3<Long, Long, Float>> expected = Lists.newArrayList(hour1, hour2);
 
