@@ -86,20 +86,20 @@ public class RidesAndFaresExercise extends ExerciseBase {
 
         @Override
         public void flatMap1(TaxiRide ride, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
-			if (mapIdToFare.get(ride.rideId) == null) {
-				mapIdToRide.put(ride.rideId, ride);
-			} else {
-				out.collect(new Tuple2<>(ride, mapIdToFare.get(ride.rideId) ));
-			}
+            if (mapIdToFare.get(ride.rideId) == null) {
+                mapIdToRide.put(ride.rideId, ride);
+            } else {
+                out.collect(new Tuple2<>(ride, mapIdToFare.get(ride.rideId)));
+            }
         }
 
         @Override
         public void flatMap2(TaxiFare fare, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
-			if (mapIdToRide.get(fare.rideId) == null) {
-				mapIdToFare.put(fare.rideId, fare);
-			} else {
-				out.collect(new Tuple2<>(mapIdToRide.get(fare.rideId),fare ));
-			}
+            if (mapIdToRide.get(fare.rideId) == null) {
+                mapIdToFare.put(fare.rideId, fare);
+            } else {
+                out.collect(new Tuple2<>(mapIdToRide.get(fare.rideId), fare));
+            }
         }
     }
 }

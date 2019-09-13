@@ -21,11 +21,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.PriorityQueue;
@@ -100,7 +97,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
 		}
 		this.dataFilePath = dataFilePath;
 		this.maxDelayMsecs = maxEventDelaySecs * 1000;
-		this.watermarkDelayMSecs = maxDelayMsecs < 10000 ? 10000 : maxDelayMsecs;
+		this.watermarkDelayMSecs = Math.max(maxDelayMsecs, 10000);
 		this.servingSpeed = servingSpeedFactor;
 	}
 
@@ -108,7 +105,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
 	public void run(SourceContext<TaxiRide> sourceContext) throws Exception {
 
 		gzipStream = new GZIPInputStream(new FileInputStream(dataFilePath));
-		reader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"));
+		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
 
 		generateUnorderedStream(sourceContext);
 

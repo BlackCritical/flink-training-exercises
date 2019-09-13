@@ -16,11 +16,11 @@
 
 package com.ververica.flinktraining.exercises.datastream_java.process;
 
+import com.google.common.collect.Lists;
 import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiFare;
 import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
 import com.ververica.flinktraining.exercises.datastream_java.testing.TaxiRideTestBase;
 import com.ververica.flinktraining.solutions.datastream_java.process.ExpiringStateSolution;
-import com.google.common.collect.Lists;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -31,11 +31,11 @@ import static org.junit.Assert.assertEquals;
 
 public class ExpiringStateTest extends TaxiRideTestBase<TaxiFare> {
 
-	static Testable javaExercise = () -> ExpiringStateExercise.main(new String[]{});
+	private static Testable javaExercise = () -> ExpiringStateExercise.main(new String[]{});
 
-	final TaxiRide ride1 = testRide(1);
-	final TaxiFare fare1 = testFare(1);
-	final TaxiFare fare2 = testFare(2);
+	private final TaxiRide ride1 = testRide(1);
+	private final TaxiFare fare1 = testFare(1);
+	private final TaxiFare fare2 = testFare(2);
 
 	@Test
 	public void testFareIsUnmatched() throws Exception {
