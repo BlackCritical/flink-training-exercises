@@ -49,7 +49,7 @@ public class RidesAndFaresExercise extends ExerciseBase {
 		final String faresFile = params.get("fares", pathToFareData);
 
 		final int delay = 60;					// at most 60 seconds of delay
-		final int servingSpeedFactor = 1800; 	// 30 minutes worth of events are served every second
+		final int servingSpeedFactor = 600; 	// 30 minutes worth of events are served every second
 
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -82,10 +82,12 @@ public class RidesAndFaresExercise extends ExerciseBase {
 
 		@Override
 		public void flatMap1(TaxiRide ride, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
+			System.out.println(ride);
 		}
 
 		@Override
 		public void flatMap2(TaxiFare fare, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
+			System.out.println(fare);
 		}
 	}
 }

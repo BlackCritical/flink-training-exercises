@@ -16,9 +16,9 @@
 
 package com.ververica.flinktraining.exercises.datastream_java.basics;
 
+import com.google.common.collect.Lists;
 import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
 import com.ververica.flinktraining.exercises.datastream_java.testing.TaxiRideTestBase;
-import com.google.common.collect.Lists;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 
 public class RideCleansingTest extends TaxiRideTestBase<TaxiRide> {
 
-	static Testable javaExercise = () -> RideCleansingExercise.main(new String[]{});
+	private static Testable javaExercise = () -> RideCleansingExercise.main(new String[]{});
 
 	@Test
 	public void testInNYC() throws Exception {
