@@ -100,12 +100,10 @@ public class ExpiringStateExercise extends ExerciseBase {
         public void open(Configuration config) throws Exception {
             ValueStateDescriptor<PriorityQueue<TaxiRide>> descriptorRide = new ValueStateDescriptor<>(
                 "sorted-rides", TypeInformation.of(new TypeHint<PriorityQueue<TaxiRide>>() {
-            })
-            );
+            }));
             ValueStateDescriptor<PriorityQueue<TaxiFare>> descriptorFare = new ValueStateDescriptor<>(
                 "sorted-fares", TypeInformation.of(new TypeHint<PriorityQueue<TaxiFare>>() {
-            })
-            );
+            }));
 
             rideQueueState = getRuntimeContext().getState(descriptorRide);
             fareQueueState = getRuntimeContext().getState(descriptorFare);
@@ -117,31 +115,30 @@ public class ExpiringStateExercise extends ExerciseBase {
         public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
             PriorityQueue<TaxiRide> rideQueue = rideQueueState.value();
             if (rideQueue != null) {
-				long watermark = ctx.timerService().currentWatermark();
-				TaxiRide head = rideQueue.peek();
-				while (head != null && head.getEventTime() <= watermark) {
-					ctx.output(unmatchedRides, head);
-					rideQueue.remove(head);
-					head = rideQueue.peek();
-				}
-			}
+                long watermark = ctx.timerService().currentWatermark();
+                TaxiRide head = rideQueue.peek();
+                while (head != null && head.getEventTime() <= watermark) {
+                    ctx.output(unmatchedRides, head);
+                    rideQueue.remove(head);
+                    head = rideQueue.peek();
+                }
+            }
 
-			if (rideQueue != null) {
-				PriorityQueue<TaxiFare> fareQueue = fareQueueState.value();
-				long watermark = ctx.timerService().currentWatermark();
-				TaxiFare fHead = fareQueue.peek();
-				while (fHead != null && fHead.getEventTime() <= watermark) {
-					ctx.output(unmatchedFares, fHead);
-					fareQueue.remove(fHead);
-					fHead = fareQueue.peek();
-				}
-			}
+            PriorityQueue<TaxiFare> fareQueue = fareQueueState.value();
+            if (fareQueue != null) {
+                long watermark = ctx.timerService().currentWatermark();
+                TaxiFare fHead = fareQueue.peek();
+                while (fHead != null && fHead.getEventTime() <= watermark) {
+                    ctx.output(unmatchedFares, fHead);
+                    fareQueue.remove(fHead);
+                    fHead = fareQueue.peek();
+                }
+            }
         }
 
         @Override
         public void processElement1(TaxiRide ride, Context context, Collector<Tuple2<TaxiRide, TaxiFare>> out) throws Exception {
             TimerService timerService = context.timerService();
-
             if (context.timestamp() > timerService.currentWatermark()) {
                 PriorityQueue<TaxiRide> queue = rideQueueState.value();
                 if (queue == null) {
@@ -151,13 +148,13 @@ public class ExpiringStateExercise extends ExerciseBase {
                 rideQueueState.update(queue);
                 timerService.registerEventTimeTimer(ride.getEventTime());
             }
-
             if (pendingTaxiFare.value() == null) {
                 pendingTaxiRide.update(ride);
             } else {
                 out.collect(new Tuple2<>(ride, pendingTaxiFare.value()));
-				pendingTaxiFare.clear();
-			}
+                context.timerService().deleteEventTimeTimer(ride.getEventTime());
+                pendingTaxiFare.clear();
+            }
         }
 
         @Override
@@ -173,11 +170,11 @@ public class ExpiringStateExercise extends ExerciseBase {
                 fareQueueState.update(queue);
                 timerService.registerEventTimeTimer(fare.getEventTime());
             }
-
             if (pendingTaxiRide.value() == null) {
                 pendingTaxiFare.update(fare);
             } else {
                 out.collect(new Tuple2<>(pendingTaxiRide.value(), fare));
+                context.timerService().deleteEventTimeTimer(fare.getEventTime());
                 pendingTaxiRide.clear();
             }
         }
