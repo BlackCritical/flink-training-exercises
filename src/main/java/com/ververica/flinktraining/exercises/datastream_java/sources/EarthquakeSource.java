@@ -47,7 +47,7 @@ import java.util.zip.GZIPInputStream;
  * <p>
  * StreamExecutionEnvironment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
  */
-public class TaxiRideSource implements SourceFunction<TaxiRide> {
+public class EarthquakeSource implements SourceFunction<TaxiRide> {
 
     private final int maxDelayMsecs;
     private final int watermarkDelayMSecs;
@@ -65,7 +65,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
      *
      * @param dataFilePath The gzipped input file from which the TaxiRide records are read.
      */
-    public TaxiRideSource(String dataFilePath) {
+    public EarthquakeSource(String dataFilePath) {
         this(dataFilePath, 0, 1);
     }
 
@@ -77,7 +77,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
      * @param dataFilePath       The gzipped input file from which the TaxiRide records are read.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
-    public TaxiRideSource(String dataFilePath, int servingSpeedFactor) {
+    public EarthquakeSource(String dataFilePath, int servingSpeedFactor) {
         this(dataFilePath, 0, servingSpeedFactor);
     }
 
@@ -90,7 +90,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
      * @param maxEventDelaySecs  The max time in seconds by which events are delayed.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
-    public TaxiRideSource(String dataFilePath, int maxEventDelaySecs, int servingSpeedFactor) {
+    public EarthquakeSource(String dataFilePath, int maxEventDelaySecs, int servingSpeedFactor) {
         if (maxEventDelaySecs < 0) {
             throw new IllegalArgumentException("Max event delay must be positive");
         }
