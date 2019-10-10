@@ -16,7 +16,8 @@
 
 package com.ververica.flinktraining.exercises.datastream_java.sources;
 
-import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
+import com.google.gson.Gson;
+import com.ververica.flinktraining.project.model.Earthquake;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
@@ -30,7 +31,7 @@ import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 /**
- * This SourceFunction generates a data stream of TaxiRide records which are
+ * This SourceFunction generates a data stream of Earthquake records which are
  * read from a gzipped input file. Each record has a time stamp and the input file must be
  * ordered by this time stamp.
  * <p>
@@ -47,7 +48,9 @@ import java.util.zip.GZIPInputStream;
  * <p>
  * StreamExecutionEnvironment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
  */
-public class EarthquakeSource implements SourceFunction<TaxiRide> {
+public class EarthquakeSource implements SourceFunction<Earthquake> {
+
+    private static final Gson GSON = new Gson();
 
     private final int maxDelayMsecs;
     private final int watermarkDelayMSecs;
@@ -59,22 +62,22 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
     private transient InputStream gzipStream;
 
     /**
-     * Serves the TaxiRide records from the specified and ordered gzipped input file.
+     * Serves the Earthquake records from the specified and ordered gzipped input file.
      * Rides are served exactly in order of their time stamps
      * at the speed at which they were originally generated.
      *
-     * @param dataFilePath The gzipped input file from which the TaxiRide records are read.
+     * @param dataFilePath The gzipped input file from which the Earthquake records are read.
      */
     public EarthquakeSource(String dataFilePath) {
         this(dataFilePath, 0, 1);
     }
 
     /**
-     * Serves the TaxiRide records from the specified and ordered gzipped input file.
+     * Serves the Earthquake records from the specified and ordered gzipped input file.
      * Rides are served exactly in order of their time stamps
      * in a serving speed which is proportional to the specified serving speed factor.
      *
-     * @param dataFilePath       The gzipped input file from which the TaxiRide records are read.
+     * @param dataFilePath       The gzipped input file from which the Earthquake records are read.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
     public EarthquakeSource(String dataFilePath, int servingSpeedFactor) {
@@ -82,11 +85,11 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
     }
 
     /**
-     * Serves the TaxiRide records from the specified and ordered gzipped input file.
+     * Serves the Earthquake records from the specified and ordered gzipped input file.
      * Rides are served out-of time stamp order with specified maximum random delay
      * in a serving speed which is proportional to the specified serving speed factor.
      *
-     * @param dataFilePath       The gzipped input file from which the TaxiRide records are read.
+     * @param dataFilePath       The gzipped input file from which the Earthquake records are read.
      * @param maxEventDelaySecs  The max time in seconds by which events are delayed.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
@@ -101,8 +104,7 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
     }
 
     @Override
-    public void run(SourceContext<TaxiRide> sourceContext) throws Exception {
-
+    public void run(SourceContext<Earthquake> sourceContext) throws Exception {
         gzipStream = new GZIPInputStream(new FileInputStream(dataFilePath));
         reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
 
@@ -115,8 +117,7 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
 
     }
 
-    private void generateUnorderedStream(SourceContext<TaxiRide> sourceContext) throws Exception {
-
+    private void generateUnorderedStream(SourceContext<Earthquake> sourceContext) throws Exception {
         long servingStartTime = Calendar.getInstance().getTimeInMillis();
         long dataStartTime;
 
@@ -125,18 +126,18 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
             32,
             Comparator.comparing(o -> o.f0));
 
-        // read first ride and insert it into emit schedule
+        // read first earthquake and insert it into emit schedule
         String line;
-        TaxiRide ride;
+        Earthquake earthquake;
         if (reader.ready() && (line = reader.readLine()) != null) {
-            // read first ride
-            ride = TaxiRide.fromString(line);
+            // read first earthquake
+            earthquake = Earthquake.fromString(line);
             // extract starting timestamp
-            dataStartTime = getEventTime(ride);
+            dataStartTime = getEventTime(earthquake);
             // get delayed time
             long delayedEventTime = dataStartTime + getNormalDelayMsecs(rand);
 
-            emitSchedule.add(new Tuple2<>(delayedEventTime, ride));
+            emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
             // schedule next watermark
             long watermarkTime = dataStartTime + watermarkDelayMSecs;
             Watermark nextWatermark = new Watermark(watermarkTime - maxDelayMsecs - 1);
@@ -146,32 +147,32 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
             return;
         }
 
-        // peek at next ride
+        // peek at next earthquake
         if (reader.ready() && (line = reader.readLine()) != null) {
-            ride = TaxiRide.fromString(line);
+            earthquake = Earthquake.fromString(line);
         }
 
-        // read rides one-by-one and emit a random ride from the buffer each time
+        // read rides one-by-one and emit a random earthquake from the buffer each time
         while (emitSchedule.size() > 0 || reader.ready()) {
 
             // insert all events into schedule that might be emitted next
             long curNextDelayedEventTime = !emitSchedule.isEmpty() ? emitSchedule.peek().f0 : -1;
-            long rideEventTime = ride != null ? getEventTime(ride) : -1;
+            long rideEventTime = earthquake != null ? getEventTime(earthquake) : -1;
             while (
-                ride != null && ( // while there is a ride AND
-                    emitSchedule.isEmpty() || // and no ride in schedule OR
+                earthquake != null && ( // while there is a earthquake AND
+                    emitSchedule.isEmpty() || // and no earthquake in schedule OR
                         rideEventTime < curNextDelayedEventTime + maxDelayMsecs) // not enough rides in schedule
             ) {
                 // insert event into emit schedule
                 long delayedEventTime = rideEventTime + getNormalDelayMsecs(rand);
-                emitSchedule.add(new Tuple2<>(delayedEventTime, ride));
+                emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
 
-                // read next ride
+                // read next earthquake
                 if (reader.ready() && (line = reader.readLine()) != null) {
-                    ride = TaxiRide.fromString(line);
-                    rideEventTime = getEventTime(ride);
+                    earthquake = Earthquake.fromString(line);
+                    rideEventTime = getEventTime(earthquake);
                 } else {
-                    ride = null;
+                    earthquake = null;
                     rideEventTime = -1;
                 }
             }
@@ -186,9 +187,9 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
 
             Thread.sleep((waitTime > 0) ? waitTime : 0);
 
-            if (head.f1 instanceof TaxiRide) {
-                TaxiRide emitRide = (TaxiRide) head.f1;
-                // emit ride
+            if (head.f1 instanceof Earthquake) {
+                Earthquake emitRide = (Earthquake) head.f1;
+                // emit earthquake
                 sourceContext.collectWithTimestamp(emitRide, getEventTime(emitRide));
             } else if (head.f1 instanceof Watermark) {
                 Watermark emitWatermark = (Watermark) head.f1;
@@ -207,7 +208,7 @@ public class EarthquakeSource implements SourceFunction<TaxiRide> {
         return servingStartTime + (dataDiff / this.servingSpeed);
     }
 
-    public long getEventTime(TaxiRide ride) {
+    public long getEventTime(Earthquake ride) {
         return ride.getEventTime();
     }
 
