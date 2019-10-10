@@ -24,7 +24,7 @@ import java.util.List;
 
 public class PopularPlacesScalaTest extends PopularPlacesTest {
 
-	static Testable scalaExercise = () -> PopularPlacesExercise.main(new String[]{"-threshold", "2"});
+	private static Testable scalaExercise = () -> PopularPlacesExercise.main(new String[]{"-threshold", "2"});
 
 	protected List<Tuple5<Float, Float, Long, Boolean, Integer>> results(TestRideSource source) throws Exception {
 		Testable scalaSolution = () -> com.ververica.flinktraining.solutions.datastream_scala.windows.PopularPlacesSolution.main(new String[]{"-threshold", "2"});
