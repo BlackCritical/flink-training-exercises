@@ -20,7 +20,6 @@ import com.google.gson.Gson;
 import com.ververica.flinktraining.project.model.Earthquake;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.watermark.Watermark;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -128,79 +127,80 @@ public class EarthquakeSource implements SourceFunction<Earthquake> {
 
         // read first earthquake and insert it into emit schedule
         String line;
-        Earthquake earthquake;
-        if (reader.ready() && (line = reader.readLine()) != null) {
-            // read first earthquake
-            earthquake = Earthquake.fromString(line);
-            // extract starting timestamp
-            dataStartTime = getEventTime(earthquake);
-            // get delayed time
-            long delayedEventTime = dataStartTime + getNormalDelayMsecs(rand);
-
-            emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
-            // schedule next watermark
-            long watermarkTime = dataStartTime + watermarkDelayMSecs;
-            Watermark nextWatermark = new Watermark(watermarkTime - maxDelayMsecs - 1);
-            emitSchedule.add(new Tuple2<>(watermarkTime, nextWatermark));
-
-        } else {
-            return;
-        }
-
-        // peek at next earthquake
-        if (reader.ready() && (line = reader.readLine()) != null) {
-            earthquake = Earthquake.fromString(line);
-        }
+        Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
+        System.out.println(earthquake);
+//        if (reader.ready() && (line = reader.readLine()) != null) {
+//            // read first earthquake
+//            earthquake = Earthquake.fromString(line);
+//            // extract starting timestamp
+//            dataStartTime = getEventTime(earthquake);
+//            // get delayed time
+//            long delayedEventTime = dataStartTime + getNormalDelayMsecs(rand);
+//
+//            emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
+//            // schedule next watermark
+//            long watermarkTime = dataStartTime + watermarkDelayMSecs;
+//            Watermark nextWatermark = new Watermark(watermarkTime - maxDelayMsecs - 1);
+//            emitSchedule.add(new Tuple2<>(watermarkTime, nextWatermark));
+//
+//        } else {
+//            return;
+//        }
+//
+//        // peek at next earthquake
+//        if (reader.ready() && (line = reader.readLine()) != null) {
+//            earthquake = Earthquake.fromString(line);
+//        }
 
         // read rides one-by-one and emit a random earthquake from the buffer each time
-        while (emitSchedule.size() > 0 || reader.ready()) {
-
-            // insert all events into schedule that might be emitted next
-            long curNextDelayedEventTime = !emitSchedule.isEmpty() ? emitSchedule.peek().f0 : -1;
-            long rideEventTime = earthquake != null ? getEventTime(earthquake) : -1;
-            while (
-                earthquake != null && ( // while there is a earthquake AND
-                    emitSchedule.isEmpty() || // and no earthquake in schedule OR
-                        rideEventTime < curNextDelayedEventTime + maxDelayMsecs) // not enough rides in schedule
-            ) {
-                // insert event into emit schedule
-                long delayedEventTime = rideEventTime + getNormalDelayMsecs(rand);
-                emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
-
-                // read next earthquake
-                if (reader.ready() && (line = reader.readLine()) != null) {
-                    earthquake = Earthquake.fromString(line);
-                    rideEventTime = getEventTime(earthquake);
-                } else {
-                    earthquake = null;
-                    rideEventTime = -1;
-                }
-            }
-
-            // emit schedule is updated, emit next element in schedule
-            Tuple2<Long, Object> head = emitSchedule.poll();
-            long delayedEventTime = head.f0;
-
-            long now = Calendar.getInstance().getTimeInMillis();
-            long servingTime = toServingTime(servingStartTime, dataStartTime, delayedEventTime);
-            long waitTime = servingTime - now;
-
-            Thread.sleep((waitTime > 0) ? waitTime : 0);
-
-            if (head.f1 instanceof Earthquake) {
-                Earthquake emitRide = (Earthquake) head.f1;
-                // emit earthquake
-                sourceContext.collectWithTimestamp(emitRide, getEventTime(emitRide));
-            } else if (head.f1 instanceof Watermark) {
-                Watermark emitWatermark = (Watermark) head.f1;
-                // emit watermark
-                sourceContext.emitWatermark(emitWatermark);
-                // schedule next watermark
-                long watermarkTime = delayedEventTime + watermarkDelayMSecs;
-                Watermark nextWatermark = new Watermark(watermarkTime - maxDelayMsecs - 1);
-                emitSchedule.add(new Tuple2<>(watermarkTime, nextWatermark));
-            }
-        }
+//        while (emitSchedule.size() > 0 || reader.ready()) {
+//
+//            // insert all events into schedule that might be emitted next
+//            long curNextDelayedEventTime = !emitSchedule.isEmpty() ? emitSchedule.peek().f0 : -1;
+//            long rideEventTime = earthquake != null ? getEventTime(earthquake) : -1;
+//            while (
+//                earthquake != null && ( // while there is a earthquake AND
+//                    emitSchedule.isEmpty() || // and no earthquake in schedule OR
+//                        rideEventTime < curNextDelayedEventTime + maxDelayMsecs) // not enough rides in schedule
+//            ) {
+//                // insert event into emit schedule
+//                long delayedEventTime = rideEventTime + getNormalDelayMsecs(rand);
+//                emitSchedule.add(new Tuple2<>(delayedEventTime, earthquake));
+//
+//                // read next earthquake
+//                if (reader.ready() && (line = reader.readLine()) != null) {
+//                    earthquake = Earthquake.fromString(line);
+//                    rideEventTime = getEventTime(earthquake);
+//                } else {
+//                    earthquake = null;
+//                    rideEventTime = -1;
+//                }
+//            }
+//
+//            // emit schedule is updated, emit next element in schedule
+//            Tuple2<Long, Object> head = emitSchedule.poll();
+//            long delayedEventTime = head.f0;
+//
+//            long servingTime = toServingTime(servingStartTime, dataStartTime, delayedEventTime);
+//            long now = Calendar.getInstance().getTimeInMillis();
+//            long waitTime = servingTime - now;
+//
+//            Thread.sleep((waitTime > 0) ? waitTime : 0);
+//
+//            if (head.f1 instanceof Earthquake) {
+//                Earthquake emitRide = (Earthquake) head.f1;
+//                // emit earthquake
+//                sourceContext.collectWithTimestamp(emitRide, getEventTime(emitRide));
+//            } else if (head.f1 instanceof Watermark) {
+//                Watermark emitWatermark = (Watermark) head.f1;
+//                // emit watermark
+//                sourceContext.emitWatermark(emitWatermark);
+//                // schedule next watermark
+//                long watermarkTime = delayedEventTime + watermarkDelayMSecs;
+//                Watermark nextWatermark = new Watermark(watermarkTime - maxDelayMsecs - 1);
+//                emitSchedule.add(new Tuple2<>(watermarkTime, nextWatermark));
+//            }
+//        }
     }
 
     public long toServingTime(long servingStartTime, long dataStartTime, long eventTime) {
@@ -208,9 +208,9 @@ public class EarthquakeSource implements SourceFunction<Earthquake> {
         return servingStartTime + (dataDiff / this.servingSpeed);
     }
 
-    public long getEventTime(Earthquake ride) {
-        return ride.getEventTime();
-    }
+//    public long getEventTime(Earthquake ride) {
+//        return ride.getEventTime();
+//    }
 
     public long getNormalDelayMsecs(Random rand) {
         long delay = -1;

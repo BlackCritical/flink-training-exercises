@@ -28,6 +28,7 @@ public class ExerciseBase {
 	public static SinkFunction out = null;
 	public static int parallelism = 4;
 
+	public final static String pathToEarthquakeData = "./trainingData/response.json.gz";
 	public final static String pathToRideData = "./trainingData/nycTaxiRides.gz";
 	public final static String pathToFareData = "./trainingData/nycTaxiFares.gz";
 

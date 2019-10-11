@@ -27,7 +27,7 @@ public class Properties {
     public Object nst;
     public Double dmin;
     public Double rms;
-    public Long gap;
+    public Double gap;
     public String magType;
     public String type;
     public String title;
