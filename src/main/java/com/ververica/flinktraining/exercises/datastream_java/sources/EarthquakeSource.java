@@ -129,6 +129,7 @@ public class EarthquakeSource implements SourceFunction<Earthquake> {
         String line;
         Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
         System.out.println(earthquake);
+        sourceContext.collect(earthquake);
 //        if (reader.ready() && (line = reader.readLine()) != null) {
 //            // read first earthquake
 //            earthquake = Earthquake.fromString(line);

@@ -1,10 +1,11 @@
 package com.ververica.flinktraining.project;
 
-import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
+import com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.exercises.datastream_java.utils.GeoUtils;
+import com.ververica.flinktraining.project.model.Earthquake;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
@@ -32,24 +33,23 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 
 
 		// start the data generator
-//		DataStream<Earthquake> rides = env.addSource(new EarthquakeSource(input));
+		DataStream<Earthquake> rides = env.addSource(new EarthquakeSource(input));
 
-//		DataStream<TaxiRide> filteredRides = rides
-//				// filter out rides that do not start or stop in NYC
-//				.filter(new NYCFilter());
-//
-//		// print the filtered stream
-//		printOrTest(filteredRides);
-//
-//		// run the cleansing pipeline
-//		env.execute("Taxi Ride Cleansing");
+		DataStream<Earthquake> filteredRides = rides
+				// filter out rides that do not start or stop in NYC
+				.filter(new NYCFilter());
+
+		// print the filtered stream
+		printOrTest(filteredRides);
+
+		// run the cleansing pipeline
+		env.execute("Taxi Ride Cleansing");
 	}
 
-	private static class NYCFilter implements FilterFunction<TaxiRide> {
-
+	private static class NYCFilter implements FilterFunction<Earthquake> {
 		@Override
-		public boolean filter(TaxiRide taxiRide) throws Exception {
-			return GeoUtils.isInNYC(taxiRide.startLon, taxiRide.startLat) && GeoUtils.isInNYC(taxiRide.endLon, taxiRide.endLat);
+		public boolean filter(Earthquake value) throws Exception {
+			return true;
 		}
 	}
 
