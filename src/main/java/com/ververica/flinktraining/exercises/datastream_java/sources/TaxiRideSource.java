@@ -170,6 +170,7 @@ public class TaxiRideSource implements SourceFunction<TaxiRide> {
                 if (reader.ready() && (line = reader.readLine()) != null) {
                     ride = TaxiRide.fromString(line);
                     rideEventTime = getEventTime(ride);
+//                    System.out.println(new Date(rideEventTime));
                 } else {
                     ride = null;
                     rideEventTime = -1;

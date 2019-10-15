@@ -2,7 +2,7 @@ package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.project.model.Earthquake;
+import com.ververica.flinktraining.project.model.Feature;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -25,7 +25,7 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 		final String input = params.get("input", ExerciseBase.pathToEarthquakeData);
 
 		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
-		final int servingSpeedFactor = 600; // events of 10 minutes are served in 1 second
+		final int servingSpeedFactor = 150; // events of 10 minutes are served in 1 second
 
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -33,9 +33,9 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 
 
 		// start the data generator
-		DataStream<Earthquake> rides = env.addSource(new EarthquakeSource(input));
+		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
 
-		DataStream<Earthquake> filteredRides = rides
+		DataStream<Feature> filteredRides = rides
 				// filter out rides that do not start or stop in NYC
 				.filter(new NYCFilter());
 
@@ -46,9 +46,9 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 		env.execute("Taxi Ride Cleansing");
 	}
 
-	private static class NYCFilter implements FilterFunction<Earthquake> {
+	private static class NYCFilter implements FilterFunction<Feature> {
 		@Override
-		public boolean filter(Earthquake value) throws Exception {
+		public boolean filter(Feature value) throws Exception {
 			return true;
 		}
 	}
