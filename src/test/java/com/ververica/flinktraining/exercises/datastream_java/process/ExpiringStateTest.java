@@ -22,6 +22,7 @@ import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
 import com.ververica.flinktraining.exercises.datastream_java.testing.TaxiRideTestBase;
 import com.ververica.flinktraining.solutions.datastream_java.process.ExpiringStateSolution;
 import org.joda.time.DateTime;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+@Ignore
 public class ExpiringStateTest extends TaxiRideTestBase<TaxiFare> {
 
 	private static Testable javaExercise = () -> ExpiringStateExercise.main(new String[]{});

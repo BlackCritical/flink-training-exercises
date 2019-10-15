@@ -4,10 +4,12 @@ import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.model.Feature;
 import org.apache.flink.streaming.api.functions.ListSourceContext;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 
+@Ignore
 public class EarthquakeSourceTest {
 
     @Test
