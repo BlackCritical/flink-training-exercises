@@ -1,12 +1,21 @@
 package com.ververica.flinktraining.project;
 
-import com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
+import com.ververica.flinktraining.project.model.Earthquake;
 import com.ververica.flinktraining.project.model.Feature;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
+
+import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -19,6 +28,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
  *
  */
 public class EarthquakeProjectExercise extends ExerciseBase {
+
 	public static void main(String[] args) throws Exception {
 
 		ParameterTool params = ParameterTool.fromArgs(args);
@@ -30,10 +40,17 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(ExerciseBase.parallelism);
+		BufferedReader reader;
+		InputStream gzipStream;
 
+		gzipStream = new GZIPInputStream(new FileInputStream(input));
+		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
+
+		Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
 
 		// start the data generator
-		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
+//		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
+		DataStream<Feature> rides = env.fromCollection(earthquake.features);
 
 		DataStream<Feature> filteredRides = rides
 				// filter out rides that do not start or stop in NYC

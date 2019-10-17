@@ -48,7 +48,7 @@ import java.util.zip.GZIPInputStream;
  */
 public class EarthquakeSource implements SourceFunction<Feature> {
 
-    private static final Gson GSON = new Gson();
+    public static final Gson GSON = new Gson();
 
     private final int maxDelayMsecs;
     private final int watermarkDelayMSecs;
@@ -124,7 +124,6 @@ public class EarthquakeSource implements SourceFunction<Feature> {
             Comparator.comparing(o -> o.f0));
 
         // read first earthquake and insert it into emit schedule
-        String line;
         Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
         Feature earthquakeFeature;
         System.out.println(earthquake);
