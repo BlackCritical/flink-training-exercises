@@ -12,10 +12,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 
@@ -31,7 +28,7 @@ import static com.ververica.flinktraining.exercises.datastream_java.sources.Eart
  *   -input path-to-input-file
  *
  */
-public class EarthquakeProjectExercise extends ExerciseBase {
+public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 	public static void main(String[] args) throws Exception {
 
@@ -44,13 +41,8 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(ExerciseBase.parallelism);
-		BufferedReader reader;
-		InputStream gzipStream;
 
-		gzipStream = new GZIPInputStream(new FileInputStream(input));
-		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
-
-		Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
+		Earthquake earthquake = readEarthquakeFromJSON(input);
 
 		// start the data generator
 //		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
@@ -68,6 +60,16 @@ public class EarthquakeProjectExercise extends ExerciseBase {
 
 		// run the cleansing pipeline
 		env.execute("Taxi Ride Cleansing");
+	}
+
+	public static Earthquake readEarthquakeFromJSON(String path) throws IOException {
+		BufferedReader reader;
+		InputStream gzipStream;
+
+		gzipStream = new GZIPInputStream(new FileInputStream(path));
+		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
+
+		return GSON.fromJson(reader, Earthquake.class);
 	}
 
 	private static class LocationFilter implements FilterFunction<Feature> {
