@@ -45,8 +45,9 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 		Earthquake earthquake = readEarthquakeFromJSON(input);
 
 		DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
+        System.out.println(earthquakes.count());
 
-		DataSet<Tuple2<Feature, Integer>> filteredRides = earthquakes
+        DataSet<Tuple2<Feature, Integer>> filteredRides = earthquakes
 			// filter out earthquakes that do not start or stop in NYC
 			.filter(new LocationFilter())
 			.flatMap(new CountAssigner())
@@ -75,7 +76,8 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 				double latitude = geometry.coordinates.get(1);
 //				double depth = geometry.coordinates.get(2);
 
-				return longitude > 0 && latitude > 0;
+//				return longitude > 10 && latitude > 10;
+				return 47.40723 < latitude && latitude < 54.908 && 5.98814 < longitude && longitude < 14.98854;  // GERMANY
 			}
 			return false;
 		}
