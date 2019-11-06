@@ -49,7 +49,6 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 
         DataSet<Tuple2<Feature, Integer>> filteredRides = earthquakes
 			// filter out earthquakes that do not start or stop in NYC
-			.filter(new LocationFilter())
 			.flatMap(new CountAssigner())
 			.groupBy(1)
 			.reduce(new CountReducer());
