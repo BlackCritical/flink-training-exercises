@@ -8,23 +8,21 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.SortPartitionOperator;
+import org.apache.flink.api.java.operators.GroupReduceOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.util.Collector;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
-import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.UNDEFINED_MAGNITUDE;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -35,7 +33,9 @@ import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExe
  * Parameters:
  * -input path-to-input-file
  */
-public class EarthquakeBatchProjectExercise extends ExerciseBase {
+public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
+
+    public static final int UNDEFINED_MAGNITUDE = -9999;
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
@@ -50,12 +50,18 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
         System.out.println(earthquakes.count());
 
-        SortPartitionOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
+//        SortPartitionOperator<Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
+//            // filter out earthquakes that do not start or stop in NYC
+//            .flatMap(new MagnitudeHistogram())
+//            .groupBy(1)
+//            .reduce(new CountHistogram())
+//            .sortPartition(1, Order.ASCENDING);
+
+
+        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
             // filter out earthquakes that do not start or stop in NYC
             .flatMap(new MagnitudeHistogram())
-            .groupBy(1, 2)
-            .reduce(new CountHistogram())
-            .sortPartition(1, Order.ASCENDING);
+            .reduceGroup(new GroupCountHistogram());
 
         hist.print();
     }
@@ -67,16 +73,16 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         return GSON.fromJson(reader, Earthquake.class);
     }
 
-    private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple3<Integer, Integer, Integer>> {
+    private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple2<Tuple2<Integer, Integer>, Integer>> {
 
         // out -> (min, max, count)
         @Override
-        public void flatMap(Feature value, Collector<Tuple3<Integer, Integer, Integer>> out) throws Exception {
+        public void flatMap(Feature value, Collector<Tuple2<Tuple2<Integer, Integer>, Integer>> out) throws Exception {
             if (value != null && value.properties != null && value.properties.mag != null) {
                 double mag = value.properties.mag;
                 for (int i = -1; i < 10; i++) {
                     if (i <= mag && mag < i + 1) {
-                        out.collect(new Tuple3<>(i, i + 1, 1));
+                        out.collect(new Tuple2<>(new Tuple2<>(i, i + 1), 1));
                         if (i > 7) {
                             System.out.println("Extreme Case:");
                             System.out.println(value);
@@ -87,14 +93,14 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
             } else {
                 System.out.println(value);
             }
-            out.collect(new Tuple3<>(UNDEFINED_MAGNITUDE, UNDEFINED_MAGNITUDE, 1));
+            out.collect(new Tuple2<>(new Tuple2<>(UNDEFINED_MAGNITUDE, 0), 1));
         }
     }
 
-    public static class CountHistogram implements ReduceFunction<Tuple3<Integer, Integer, Integer>> {
+    public static class CountHistogram implements ReduceFunction<Tuple2<Tuple2<Integer, Integer>, Integer>> {
         @Override
-        public Tuple3<Integer, Integer, Integer> reduce(Tuple3<Integer, Integer, Integer> firstTuple, Tuple3<Integer, Integer, Integer> secondTuple) throws Exception {
-            return new Tuple3<>(firstTuple.f0, firstTuple.f1, firstTuple.f2 + secondTuple.f2);
+        public Tuple2<Tuple2<Integer, Integer>, Integer> reduce(Tuple2<Tuple2<Integer, Integer>, Integer> firstTuple, Tuple2<Tuple2<Integer, Integer>, Integer> secondTuple) throws Exception {
+            return new Tuple2<>(firstTuple.f0, firstTuple.f1 + secondTuple.f1);
         }
     }
 
@@ -134,6 +140,22 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
             List<Tuple2<Feature, Integer>> list = new ArrayList<>();
             values.iterator().forEachRemaining(list::add);
             out.collect(new Tuple2<>(list.get(0).f0, list.size()));
+        }
+    }
+
+    private static class GroupCountHistogram implements GroupReduceFunction<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> {
+        @Override
+        public void reduce(Iterable<Tuple2<Tuple2<Integer, Integer>, Integer>> values, Collector<Tuple2<Tuple2<Integer, Integer>, Integer>> out) throws Exception {
+            HashMap<Integer, Integer> histValues = new HashMap<>();
+            histValues.put(UNDEFINED_MAGNITUDE, 0);
+            for (int i = -1; i < 10; i++) {
+                histValues.put(i, 0);
+            }
+            values.iterator().forEachRemaining(value -> {
+                int currentVal = histValues.get(value.f0.f0);
+                histValues.put(value.f0.f0, currentVal + 1);
+            });
+            histValues.forEach((key, value) -> out.collect(new Tuple2<>(new Tuple2<>(key, key + 1), value)));
         }
     }
 }
