@@ -10,6 +10,7 @@ import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.operators.ReduceOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -36,34 +37,29 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", ExerciseBase.pathToEarthquakeData);
+        final String input = params.get("input", pathToTinyEarthquakeData);
 
         // set up batch execution environment
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(ExerciseBase.parallelism);
+        env.setParallelism(parallelism);
 
         Earthquake earthquake = readEarthquakeFromJSON(input);
 
         DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
         System.out.println(earthquakes.count());
 
-        DataSet<Tuple2<Feature, Integer>> filteredRides = earthquakes
+        ReduceOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
             // filter out earthquakes that do not start or stop in NYC
             .flatMap(new MagnitudeHistogram())
             .groupBy(1, 2)
-            .reduce(new CountReducer());
+            .reduce(new CountHistogram());
 
-        filteredRides.print();
+        hist.print();
     }
 
-    // TODO mag histographisch 0-1 1-2 usw. einsortieren
-
     public static Earthquake readEarthquakeFromJSON(String path) throws IOException {
-        BufferedReader reader;
-        InputStream gzipStream;
-
-        gzipStream = new GZIPInputStream(new FileInputStream(path));
-        reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
+        InputStream gzipStream = new GZIPInputStream(new FileInputStream(path));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
 
         return GSON.fromJson(reader, Earthquake.class);
     }
@@ -73,14 +69,25 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         // out -> (min, max, count)
         @Override
         public void flatMap(Feature value, Collector<Tuple3<Integer, Integer, Integer>> out) throws Exception {
-            double mag = value.properties.mag;
-            for (int i = -1; i < 10; i++) {
-                if (i <= mag && mag < i + 1) {
-                    out.collect(new Tuple3<>(i, i + 1, 1));
-                    return;
+            if (value != null && value.properties != null && value.properties.mag != null) {
+                double mag = value.properties.mag;
+                for (int i = -1; i < 10; i++) {
+                    if (i <= mag && mag < i + 1) {
+                        out.collect(new Tuple3<>(i, i + 1, 1));
+                        return;
+                    }
                 }
+            } else {
+                System.out.println(value);
             }
             out.collect(new Tuple3<>(0, 0, 1));
+        }
+    }
+
+    public static class CountHistogram implements ReduceFunction<Tuple3<Integer, Integer, Integer>> {
+        @Override
+        public Tuple3<Integer, Integer, Integer> reduce(Tuple3<Integer, Integer, Integer> firstTuple, Tuple3<Integer, Integer, Integer> secondTuple) throws Exception {
+            return new Tuple3<>(firstTuple.f0, firstTuple.f1, firstTuple.f2 + secondTuple.f2);
         }
     }
 
