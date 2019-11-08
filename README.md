@@ -1,7 +1,7 @@
 This repository contains examples as well as reference solutions and utility classes for the Apache Flink Training exercises 
 found on [http://training.ververica.com](http://training.ververica.com).
 
-Choosen Metrics:
+Chosen Metrics:
 
 1. The earthquakes magnitude (located inside the "mag" property)
 2. The existence of a Tsunami. 0 -> No Tsunami, 1 -> Tsunami (located inside the "tsunami" property)
