@@ -18,8 +18,8 @@ public class TransformEarthquakeJSON {
         final String input = params.get("input", ExerciseBase.pathToEarthquakeData);
 
         Earthquake earthquake = readEarthquakeFromJSON(input);
-        earthquake.features = earthquake.features.subList(0, 10000);
-        try (PrintWriter out = new PrintWriter("earthquake.json")) {
+        earthquake.features = earthquake.features.subList(0, 100000);
+        try (PrintWriter out = new PrintWriter("earthquake-medium.json")) {
             out.println(GSON.toJson(earthquake));
         } catch (Exception e) {
             e.printStackTrace();

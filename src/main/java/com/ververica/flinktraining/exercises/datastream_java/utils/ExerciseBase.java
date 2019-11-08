@@ -29,7 +29,9 @@ public class ExerciseBase {
 	public static int parallelism = 4;
 
 	public final static String pathToEarthquakeData = "./trainingData/earthquake.json.gz";
-	public final static String pathToTinyEarthquakeData = "./trainingData/earthquake-tiny.json.gz";
+	public final static String pathToTinyEarthquakeData = "./trainingData/earthquake-tiny.json.gz";  // 10000 Features
+	public final static String pathToSmallEarthquakeData = "./trainingData/earthquake-small.json.gz";  // 50000 Features
+	public final static String pathToMediumEarthquakeData = "./trainingData/earthquake-medium.json.gz";  // 100000 Features
 	public final static String pathToRideData = "./trainingData/nycTaxiRides.gz";
 	public final static String pathToFareData = "./trainingData/nycTaxiFares.gz";
 
