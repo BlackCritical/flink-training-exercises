@@ -8,9 +8,10 @@ import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.ReduceOperator;
+import org.apache.flink.api.java.operators.SortPartitionOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -37,7 +38,7 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToTinyEarthquakeData);
+        final String input = params.get("input", pathToSmallEarthquakeData);
 
         // set up batch execution environment
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
@@ -48,11 +49,12 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
         System.out.println(earthquakes.count());
 
-        ReduceOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
+        SortPartitionOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
             // filter out earthquakes that do not start or stop in NYC
             .flatMap(new MagnitudeHistogram())
             .groupBy(1, 2)
-            .reduce(new CountHistogram());
+            .reduce(new CountHistogram())
+            .sortPartition(1, Order.ASCENDING);
 
         hist.print();
     }
@@ -74,6 +76,10 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
                 for (int i = -1; i < 10; i++) {
                     if (i <= mag && mag < i + 1) {
                         out.collect(new Tuple3<>(i, i + 1, 1));
+                        if (i > 7) {
+                            System.out.println("Extreme Case:");
+                            System.out.println(value);
+                        }
                         return;
                     }
                 }
