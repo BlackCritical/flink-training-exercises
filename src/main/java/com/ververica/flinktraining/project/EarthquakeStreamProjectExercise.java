@@ -1,7 +1,7 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.project.model.Earthquake;
+import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
 import org.apache.flink.api.common.functions.FilterFunction;
@@ -42,7 +42,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(ExerciseBase.parallelism);
 
-		Earthquake earthquake = readEarthquakeFromJSON(input);
+		EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
 
 		// start the data generator
 //		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
@@ -62,14 +62,14 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 		env.execute("Taxi Ride Cleansing");
 	}
 
-	public static Earthquake readEarthquakeFromJSON(String path) throws IOException {
+	public static EarthquakeCollection readEarthquakeFromJSON(String path) throws IOException {
 		BufferedReader reader;
 		InputStream gzipStream;
 
 		gzipStream = new GZIPInputStream(new FileInputStream(path));
 		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
 
-		return GSON.fromJson(reader, Earthquake.class);
+		return GSON.fromJson(reader, EarthquakeCollection.class);
 	}
 
 	private static class LocationFilter implements FilterFunction<Feature> {

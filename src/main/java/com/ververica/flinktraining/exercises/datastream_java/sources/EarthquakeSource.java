@@ -17,7 +17,7 @@
 package com.ververica.flinktraining.exercises.datastream_java.sources;
 
 import com.google.gson.Gson;
-import com.ververica.flinktraining.project.model.Earthquake;
+import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 /**
- * This SourceFunction generates a data stream of Earthquake records which are
+ * This SourceFunction generates a data stream of EarthquakeCollection records which are
  * read from a gzipped input file. Each record has a time stamp and the input file must be
  * ordered by this time stamp.
  * <p>
@@ -60,22 +60,22 @@ public class EarthquakeSource implements SourceFunction<Feature> {
     private transient InputStream gzipStream;
 
     /**
-     * Serves the Earthquake records from the specified and ordered gzipped input file.
+     * Serves the EarthquakeCollection records from the specified and ordered gzipped input file.
      * Rides are served exactly in order of their time stamps
      * at the speed at which they were originally generated.
      *
-     * @param dataFilePath The gzipped input file from which the Earthquake records are read.
+     * @param dataFilePath The gzipped input file from which the EarthquakeCollection records are read.
      */
     public EarthquakeSource(String dataFilePath) {
         this(dataFilePath, 0, 1);
     }
 
     /**
-     * Serves the Earthquake records from the specified and ordered gzipped input file.
+     * Serves the EarthquakeCollection records from the specified and ordered gzipped input file.
      * Rides are served exactly in order of their time stamps
      * in a serving speed which is proportional to the specified serving speed factor.
      *
-     * @param dataFilePath       The gzipped input file from which the Earthquake records are read.
+     * @param dataFilePath       The gzipped input file from which the EarthquakeCollection records are read.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
     public EarthquakeSource(String dataFilePath, int servingSpeedFactor) {
@@ -83,11 +83,11 @@ public class EarthquakeSource implements SourceFunction<Feature> {
     }
 
     /**
-     * Serves the Earthquake records from the specified and ordered gzipped input file.
+     * Serves the EarthquakeCollection records from the specified and ordered gzipped input file.
      * Rides are served out-of time stamp order with specified maximum random delay
      * in a serving speed which is proportional to the specified serving speed factor.
      *
-     * @param dataFilePath       The gzipped input file from which the Earthquake records are read.
+     * @param dataFilePath       The gzipped input file from which the EarthquakeCollection records are read.
      * @param maxEventDelaySecs  The max time in seconds by which events are delayed.
      * @param servingSpeedFactor The serving speed factor by which the logical serving time is adjusted.
      */
@@ -124,7 +124,7 @@ public class EarthquakeSource implements SourceFunction<Feature> {
             Comparator.comparing(o -> o.f0));
 
         // read first earthquake and insert it into emit schedule
-        Earthquake earthquake = GSON.fromJson(reader, Earthquake.class);
+        EarthquakeCollection earthquake = GSON.fromJson(reader, EarthquakeCollection.class);
         Feature earthquakeFeature;
         System.out.println(earthquake);
 

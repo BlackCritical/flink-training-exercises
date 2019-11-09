@@ -1,7 +1,7 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.project.model.Earthquake;
+import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
 import org.apache.flink.api.common.functions.FilterFunction;
@@ -17,13 +17,9 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.util.Collector;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
 
-import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
 import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.UNDEFINED_MAGNITUDE;
 
 /**
@@ -45,7 +41,7 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parallelism);
 
-        Earthquake earthquake = readEarthquakeFromJSON(input);
+        EarthquakeCollection earthquake = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
 
         DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
         System.out.println(earthquakes.count());
@@ -57,13 +53,6 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
             .sortPartition(1, Order.ASCENDING);
 
         hist.print();
-    }
-
-    public static Earthquake readEarthquakeFromJSON(String path) throws IOException {
-        InputStream gzipStream = new GZIPInputStream(new FileInputStream(path));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
-
-        return GSON.fromJson(reader, Earthquake.class);
     }
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple3<Integer, Integer, Integer>> {
