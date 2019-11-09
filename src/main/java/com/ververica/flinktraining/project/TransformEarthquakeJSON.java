@@ -17,7 +17,7 @@ public class TransformEarthquakeJSON {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", ExerciseBase.pathToEarthquakeData);
+        final String input = params.get("input", ExerciseBase.pathToBigEarthquakeData);
         final String input2 = params.get("input2", ExerciseBase.pathToNewData);
 
         EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
@@ -28,20 +28,18 @@ public class TransformEarthquakeJSON {
     }
 
     private static void mergeSources(EarthquakeCollection earthquake, EarthquakeCollection newData) {
-        if (newData.metadata.count > 0 && !newData.bbox.isEmpty()) {
-            earthquake.features.addAll(newData.features);
-            earthquake.allMetadata.add(newData.metadata);
+        earthquake.features.addAll(newData.features);
+        earthquake.allMetadata.add(newData.metadata);
 
-            List<Double> doubles = newData.bbox;
-            List<Double> resultBbox = earthquake.bbox;
-            for (int i = 0; i < 3; i++) {
-                Double bbox = doubles.get(i);
-                resultBbox.set(i, resultBbox.get(i) < bbox ? resultBbox.get(i) : bbox);
-            }
-            for (int i = 3; i < 6; i++) {
-                Double bbox = doubles.get(i);
-                resultBbox.set(i, resultBbox.get(i) > bbox ? resultBbox.get(i) : bbox);
-            }
+        List<Double> doubles = newData.bbox;
+        List<Double> resultBbox = earthquake.bbox;
+        for (int i = 0; i < 3; i++) {
+            Double bbox = doubles.get(i);
+            resultBbox.set(i, resultBbox.get(i) < bbox ? resultBbox.get(i) : bbox);
+        }
+        for (int i = 3; i < 6; i++) {
+            Double bbox = doubles.get(i);
+            resultBbox.set(i, resultBbox.get(i) > bbox ? resultBbox.get(i) : bbox);
         }
         writeToFile(earthquake, "earthquake2014-2019.json");
     }

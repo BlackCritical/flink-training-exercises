@@ -35,7 +35,7 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToEarthquakeData);
+        final String input = params.get("input", pathToBigEarthquakeData);
 
         // set up batch execution environment
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();

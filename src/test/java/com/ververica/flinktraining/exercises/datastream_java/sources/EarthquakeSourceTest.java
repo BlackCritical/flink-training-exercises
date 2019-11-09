@@ -15,7 +15,7 @@ public class EarthquakeSourceTest {
     @Test
     public void run() throws Exception {
         SourceFunction.SourceContext<Feature> s = new ListSourceContext<>(new ArrayList<>());
-        EarthquakeSource es = new EarthquakeSource(ExerciseBase.pathToEarthquakeData);
+        EarthquakeSource es = new EarthquakeSource(ExerciseBase.pathToBigEarthquakeData);
         es.run(s);
     }
 }
