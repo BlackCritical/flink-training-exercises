@@ -7,7 +7,6 @@ import com.ververica.flinktraining.project.model.Geometry;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.GroupReduceOperator;
@@ -15,9 +14,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.util.Collector;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -45,23 +42,19 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
         System.out.println(earthquakes.count());
 
-//        SortPartitionOperator<Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
-//            .flatMap(new MagnitudeHistogram())
-//            .groupBy(1)
-//            .reduce(new CountHistogram())
-//            .sortPartition(1, Order.ASCENDING);
-
-
         GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
             .flatMap(new MagnitudeHistogram())
             .reduceGroup(new GroupCountHistogram());
+
+        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> alert = earthquakes
+                .flatMap(new MagnitudeHistogram())
+                .reduceGroup(new GroupCountHistogram());
 
         hist.print();
     }
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple2<Tuple2<Integer, Integer>, Integer>> {
 
-        // out -> (min, max, count)
         @Override
         public void flatMap(Feature value, Collector<Tuple2<Tuple2<Integer, Integer>, Integer>> out) throws Exception {
             if (value != null && value.properties != null && value.properties.mag != null) {
@@ -83,13 +76,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    public static class CountHistogram implements ReduceFunction<Tuple2<Tuple2<Integer, Integer>, Integer>> {
-        @Override
-        public Tuple2<Tuple2<Integer, Integer>, Integer> reduce(Tuple2<Tuple2<Integer, Integer>, Integer> firstTuple, Tuple2<Tuple2<Integer, Integer>, Integer> secondTuple) throws Exception {
-            return new Tuple2<>(firstTuple.f0, firstTuple.f1 + secondTuple.f1);
-        }
-    }
-
     private static class LocationFilter implements FilterFunction<Feature> {
         @Override
         public boolean filter(Feature value) throws Exception {
@@ -103,29 +89,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 return 47.40723 < latitude && latitude < 54.908 && 5.98814 < longitude && longitude < 14.98854;  // GERMANY
             }
             return false;
-        }
-    }
-
-    private static class CountAssigner implements FlatMapFunction<Feature, Tuple2<Feature, Integer>> {
-        @Override
-        public void flatMap(Feature value, Collector<Tuple2<Feature, Integer>> out) throws Exception {
-            out.collect(new Tuple2<>(value, 1));
-        }
-    }
-
-    public static class CountReducer implements ReduceFunction<Tuple2<Feature, Integer>> {
-        @Override
-        public Tuple2<Feature, Integer> reduce(Tuple2<Feature, Integer> firstTuple, Tuple2<Feature, Integer> secondTuple) throws Exception {
-            return new Tuple2<>(firstTuple.f0, firstTuple.f1 + secondTuple.f1);
-        }
-    }
-
-    private static class ReduceGroup implements GroupReduceFunction<Tuple2<Feature, Integer>, Tuple2<Feature, Integer>> {
-        @Override
-        public void reduce(Iterable<Tuple2<Feature, Integer>> values, Collector<Tuple2<Feature, Integer>> out) throws Exception {
-            List<Tuple2<Feature, Integer>> list = new ArrayList<>();
-            values.iterator().forEachRemaining(list::add);
-            out.collect(new Tuple2<>(list.get(0).f0, list.size()));
         }
     }
 

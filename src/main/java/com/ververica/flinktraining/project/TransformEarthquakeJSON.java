@@ -33,7 +33,7 @@ public class TransformEarthquakeJSON {
         LinkedList<String> dupIds = new LinkedList<>();
         LinkedList<Integer> dupIndexs = new LinkedList<>();
         List<Feature> features = earthquake.features;
-        for (int i = 0; i < features.size(); i++) {
+        for (int i = 90000; i < features.size(); i++) {
             String id = features.get(i).id;
 
             for (int j = i + 1; j < features.size(); j++) {
