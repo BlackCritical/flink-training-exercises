@@ -51,7 +51,6 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         System.out.println(earthquakes.count());
 
         SortPartitionOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
-            // filter out earthquakes that do not start or stop in NYC
             .flatMap(new MagnitudeHistogram())
             .groupBy(1, 2)
             .reduce(new CountHistogram())

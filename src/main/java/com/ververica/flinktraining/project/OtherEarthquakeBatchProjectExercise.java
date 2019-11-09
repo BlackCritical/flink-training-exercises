@@ -51,7 +51,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         System.out.println(earthquakes.count());
 
 //        SortPartitionOperator<Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
-//            // filter out earthquakes that do not start or stop in NYC
 //            .flatMap(new MagnitudeHistogram())
 //            .groupBy(1)
 //            .reduce(new CountHistogram())
@@ -59,7 +58,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
 
         GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
-            // filter out earthquakes that do not start or stop in NYC
             .flatMap(new MagnitudeHistogram())
             .reduceGroup(new GroupCountHistogram());
 
