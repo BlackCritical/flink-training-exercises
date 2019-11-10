@@ -3,14 +3,12 @@ package com.ververica.flinktraining.project;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
+import com.ververica.flinktraining.project.model.Location;
 import org.apache.flink.api.java.utils.ParameterTool;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
@@ -21,12 +19,15 @@ public class TransformEarthquakeJSON {
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
         final String input = params.get("input", ExerciseBase.pathToALLEarthquakeData);
+        final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 
-        EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
+//        EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
+        List<Location> locations = readLocationsFromCSV(inputCSV);
+        System.out.println(locations.get(locations.size() - 1));
 //        writeSubList(earthquake);
 //        mergeSources(earthquake);
-        printTimeRange(earthquake);
-        findAndRemoveDuplicates(earthquake);
+//        printTimeRange(earthquake);
+//        findAndRemoveDuplicates(earthquake);
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
@@ -97,5 +98,39 @@ public class TransformEarthquakeJSON {
         BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
 
         return GSON.fromJson(reader, EarthquakeCollection.class);
+    }
+
+    private static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
+        ArrayList<Location> locations = new ArrayList<>();
+        InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputCSV));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
+        Scanner sc = new Scanner(reader)
+                .useDelimiter("([;\n])");
+
+        while (sc.hasNext()) {
+            String name = sc.next();
+            System.out.println(name);
+            if (!name.equals("Locations")) {
+                double latitude = readTude(sc);
+                double longitude = readTude(sc);
+
+                locations.add(Location.builder()
+                        .name(name)
+                        .minLatitude(latitude)
+                        .minLongitude(longitude).build());
+            } else {
+                sc.next();
+                sc.next();
+            }
+        }
+        return locations;
+    }
+
+    private static double readTude(Scanner sc) {
+        String tudeStr = sc.next();
+        int latIndex = tudeStr.indexOf('\'');
+        System.out.println(tudeStr);
+        tudeStr = latIndex > -1 ? tudeStr.substring(0, latIndex) : tudeStr;
+        return Double.parseDouble(tudeStr);
     }
 }
