@@ -22,21 +22,24 @@ public class TransformEarthquakeJSON {
         final String inputCSV_USA = params.get("inputCSV_USA", ExerciseBase.pathToLocationsUSA);
         final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 
-//        EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
-        List<Location> locations = readLocationsFromCSV(inputCSV);
+        EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
+//        List<Location> locations = readLocationsFromCSV(inputCSV);
 //        List<Location> locationsUSA = readLocationsFromCSV(inputCSV_USA);
-        System.out.println(locations.get(locations.size() - 1));
+//        System.out.println(locationsUSA.size());
+//        System.out.println(locations.size());
+
+
 //        writeSubList(earthquake);
 //        mergeSources(earthquake);
 //        printTimeRange(earthquake);
-//        findAndRemoveDuplicates(earthquake);
+        findAndRemoveDuplicates(earthquake);
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
         LinkedList<String> dupIds = new LinkedList<>();
         LinkedList<Integer> dupIndexs = new LinkedList<>();
         List<Feature> features = earthquake.features;
-        for (int i = 90000; i < features.size(); i++) {
+        for (int i = 290000; i < features.size(); i++) {
             String id = features.get(i).id;
 
             for (int j = i + 1; j < features.size(); j++) {
@@ -102,7 +105,7 @@ public class TransformEarthquakeJSON {
         return GSON.fromJson(reader, EarthquakeCollection.class);
     }
 
-    private static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
+    static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
         ArrayList<Location> locations = new ArrayList<>();
         InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputCSV));
         BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
@@ -118,8 +121,8 @@ public class TransformEarthquakeJSON {
 
                 locations.add(Location.builder()
                         .name(name)
-                        .minLatitude(latitude)
-                        .minLongitude(longitude).build());
+                        .latitude(latitude)
+                        .longitude(longitude).build());
             } else {
                 sc.next();
                 sc.next();

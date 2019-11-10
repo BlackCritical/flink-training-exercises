@@ -12,10 +12,10 @@ public class Properties {
     public Long tz;
     public String url;
     public String detail;
-    public Object felt;
-    public Object cdi;
-    public Object mmi;
-    public Object alert;
+    public Double felt;
+    public Double cdi;
+    public Double mmi;
+    public String alert;
     public String status;
     public Long tsunami;
     public Long sig;
@@ -24,7 +24,7 @@ public class Properties {
     public String ids;
     public String sources;
     public String types;
-    public Object nst;
+    public Double nst;
     public Double dmin;
     public Double rms;
     public Double gap;

@@ -5,16 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Location {
+public class Location implements Serializable {
 
     public String name;
-    public double minLongitude;
-    public double maxLongitude;
-    public double minLatitude;
-    public double maxLatitude;
+    public double longitude;
+    public double latitude;
 
 }

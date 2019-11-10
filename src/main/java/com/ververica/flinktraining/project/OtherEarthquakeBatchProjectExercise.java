@@ -4,17 +4,21 @@ import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
+import com.ververica.flinktraining.project.model.Location;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.GroupReduceOperator;
+import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.util.Collector;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -31,26 +35,26 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToSmallEarthquakeData);
+        final String input = params.get("input", pathToTinyEarthquakeData);
+        final String inputCSV = params.get("inputCSV", pathToLocations);
 
         // set up batch execution environment
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parallelism);
 
-        EarthquakeCollection earthquake = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
+        EarthquakeCollection earthquakeCollection = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
 
-        DataSet<Feature> earthquakes = env.fromCollection(earthquake.features);
-        System.out.println(earthquakes.count());
+        DataSet<Feature> earthquakes = env.fromCollection(earthquakeCollection.features);
 
-        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
-            .flatMap(new MagnitudeHistogram())
-            .reduceGroup(new GroupCountHistogram());
+//        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
+//                .flatMap(new MagnitudeHistogram())
+//                .reduceGroup(new GroupCountHistogram());
 
-        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> alert = earthquakes
-                .flatMap(new MagnitudeHistogram())
-                .reduceGroup(new GroupCountHistogram());
+        FlatMapOperator<Tuple3<Double, Double, String>, Tuple2<String, String>> alertLevelAndCoordinates = earthquakes
+                .flatMap(new AlertLevelAndCoordinates())
+                .flatMap(new AlertLevelAndCountry());
 
-        hist.print();
+        alertLevelAndCoordinates.print();
     }
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple2<Tuple2<Integer, Integer>, Integer>> {
@@ -105,6 +109,55 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 histValues.put(value.f0.f0, currentVal + 1);
             });
             histValues.forEach((key, value) -> out.collect(new Tuple2<>(new Tuple2<>(key, key + 1), value)));
+        }
+    }
+
+    private static class AlertLevelAndCoordinates implements FlatMapFunction<Feature, Tuple3<Double, Double, String>> {
+
+        // out -> (latitude, longitude, alertLevel)
+        @Override
+        public void flatMap(Feature feature, Collector<Tuple3<Double, Double, String>> collector) {
+            List<Double> coordinates = feature.geometry.coordinates;
+            if (!coordinates.isEmpty()) {
+                String alert;
+//                try {
+                    alert = feature.properties.alert;
+//                } catch (ClassCastException e) {
+//                    alert = "UNDEFINED";
+//                }
+                collector.collect(new Tuple3<>(coordinates.get(1), coordinates.get(0), alert));
+            }
+        }
+    }
+
+    private static class AlertLevelAndCountry implements FlatMapFunction<Tuple3<Double, Double, String>, Tuple2<String, String>> {
+
+        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
+
+        private AlertLevelAndCountry() throws IOException {
+        }
+
+        @Override
+        public void flatMap(Tuple3<Double, Double, String> value, Collector<Tuple2<String, String>> collector) throws Exception {
+            String country = getCountry(value.f0, value.f1);
+            collector.collect(new Tuple2<>(country, value.f2));
+        }
+
+        private String getCountry(double f0, double f1) throws Exception {
+            double minDistance = Double.MAX_VALUE;
+            String minName = "";
+            for (Location location : locations) {
+                double distance = euklidDistance(f0, f1, location.latitude, location.longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    minName = location.name;
+                }
+            }
+            return minName;
+        }
+
+        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
+            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
         }
     }
 }
