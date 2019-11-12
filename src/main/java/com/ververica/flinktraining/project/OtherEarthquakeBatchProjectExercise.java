@@ -10,10 +10,11 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.FlatMapOperator;
+import org.apache.flink.api.java.operators.DataSink;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToTinyEarthquakeData);
+        final String input = params.get("input", pathToALLEarthquakeData);
         final String inputCSV = params.get("inputCSV", pathToLocations);
 
         // set up batch execution environment
@@ -43,6 +44,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         env.setParallelism(parallelism);
 
         EarthquakeCollection earthquakeCollection = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
+        System.out.println(earthquakeCollection.features.size());
 
         DataSet<Feature> earthquakes = env.fromCollection(earthquakeCollection.features);
 
@@ -50,11 +52,25 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //                .flatMap(new MagnitudeHistogram())
 //                .reduceGroup(new GroupCountHistogram());
 
-        FlatMapOperator<Tuple3<Double, Double, String>, Tuple2<String, String>> alertLevelAndCoordinates = earthquakes
-                .flatMap(new AlertLevelAndCoordinates())
-                .flatMap(new AlertLevelAndCountry());
+        DataSink<String> sigAndCoordinates = earthquakes
+                .flatMap(new SIGAndCoordinates())
+                .flatMap(new SIGAndCountry())
+                .groupBy(0)
+                .max(1)
+                .writeAsFormattedText("./output-max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+                .name("SIGAndCoordinates");
 
-        alertLevelAndCoordinates.print();
+        DataSink<String> sigAndCoordinatesSum = earthquakes
+                .flatMap(new SIGAndCoordinates())
+                .flatMap(new SIGAndCountry())
+                .groupBy(0)
+                .sum(1)
+                .writeAsFormattedText("./output-sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+                .name("SIGAndCoordinatesSum");
+
+
+//        sigAndCoordinates.print();
+        System.out.println("NetRuntime: " + env.execute().getNetRuntime());
     }
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple2<Tuple2<Integer, Integer>, Integer>> {
@@ -112,33 +128,27 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class AlertLevelAndCoordinates implements FlatMapFunction<Feature, Tuple3<Double, Double, String>> {
+    private static class SIGAndCoordinates implements FlatMapFunction<Feature, Tuple3<Double, Double, Long>> {
 
         // out -> (latitude, longitude, alertLevel)
         @Override
-        public void flatMap(Feature feature, Collector<Tuple3<Double, Double, String>> collector) {
+        public void flatMap(Feature feature, Collector<Tuple3<Double, Double, Long>> collector) {
             List<Double> coordinates = feature.geometry.coordinates;
             if (!coordinates.isEmpty()) {
-                String alert;
-//                try {
-                    alert = feature.properties.alert;
-//                } catch (ClassCastException e) {
-//                    alert = "UNDEFINED";
-//                }
-                collector.collect(new Tuple3<>(coordinates.get(1), coordinates.get(0), alert));
+                collector.collect(new Tuple3<>(coordinates.get(1), coordinates.get(0), feature.properties.sig));
             }
         }
     }
 
-    private static class AlertLevelAndCountry implements FlatMapFunction<Tuple3<Double, Double, String>, Tuple2<String, String>> {
+    private static class SIGAndCountry implements FlatMapFunction<Tuple3<Double, Double, Long>, Tuple2<String, Long>> {
 
         private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
 
-        private AlertLevelAndCountry() throws IOException {
+        private SIGAndCountry() throws IOException {
         }
 
         @Override
-        public void flatMap(Tuple3<Double, Double, String> value, Collector<Tuple2<String, String>> collector) throws Exception {
+        public void flatMap(Tuple3<Double, Double, Long> value, Collector<Tuple2<String, Long>> collector) throws Exception {
             String country = getCountry(value.f0, value.f1);
             collector.collect(new Tuple2<>(country, value.f2));
         }

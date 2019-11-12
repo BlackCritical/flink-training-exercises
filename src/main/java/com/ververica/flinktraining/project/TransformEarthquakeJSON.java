@@ -33,13 +33,14 @@ public class TransformEarthquakeJSON {
 //        mergeSources(earthquake);
 //        printTimeRange(earthquake);
         findAndRemoveDuplicates(earthquake);
+        writeToFile(earthquake, "earthquakeALL-2014-2019CLEAN.json");
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
         LinkedList<String> dupIds = new LinkedList<>();
         LinkedList<Integer> dupIndexs = new LinkedList<>();
         List<Feature> features = earthquake.features;
-        for (int i = 290000; i < features.size(); i++) {
+        for (int i = 520000; i < features.size(); i++) {
             String id = features.get(i).id;
 
             for (int j = i + 1; j < features.size(); j++) {
@@ -55,7 +56,6 @@ public class TransformEarthquakeJSON {
         }
         System.out.println(Arrays.toString(dupIds.toArray()));
         dupIndexs.forEach(index -> earthquake.features.remove(index.intValue()));
-        writeToFile(earthquake, "earthquakeALL-2014-2019CLEAN.json");
     }
 
     private static void mergeSources(EarthquakeCollection earthquake) throws IOException {
@@ -106,6 +106,7 @@ public class TransformEarthquakeJSON {
     }
 
     static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
+        System.out.println("READ!");
         ArrayList<Location> locations = new ArrayList<>();
         InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputCSV));
         BufferedReader reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
@@ -114,7 +115,6 @@ public class TransformEarthquakeJSON {
 
         while (sc.hasNext()) {
             String name = sc.next();
-            System.out.println(name);
             if (!name.equals("Locations")) {
                 double latitude = readTude(sc);
                 double longitude = readTude(sc);
@@ -128,35 +128,12 @@ public class TransformEarthquakeJSON {
                 sc.next();
             }
         }
-
-//        locations.sort((location1, location2) -> {
-//            int compareLat = Double.compare(location1.minLatitude, location2.minLatitude);
-//            int compareLong = Double.compare(location1.minLongitude, location2.minLongitude);
-//
-//            if (compareLat == compareLong) {
-//                return compareLat;
-//            }
-//            if (compareLat == 0) {
-//                return compareLong;
-//            }
-//            return compareLat;
-//        });
-//
-//        for (int i = 0; i < locations.size(); i++) {
-//            if (i < locations.size() - 1) {
-//                double latitude = locations.get(i).minLatitude;
-//                double longitude = locations.get(i).minLongitude;
-//
-//            }
-//        }
-
         return locations;
     }
 
     private static double readTude(Scanner sc) {
         String tudeStr = sc.next();
         int latIndex = tudeStr.indexOf('\'');
-        System.out.println(tudeStr);
         tudeStr = latIndex > -1 ? tudeStr.substring(0, latIndex) : tudeStr;
         return Double.parseDouble(tudeStr);
     }

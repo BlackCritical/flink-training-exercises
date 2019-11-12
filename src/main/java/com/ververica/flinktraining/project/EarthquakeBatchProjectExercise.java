@@ -48,9 +48,9 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
 
         SortPartitionOperator<Tuple3<Integer, Integer, Integer>> hist = earthquakes
             .flatMap(new MagnitudeHistogram())
-            .groupBy(1, 2)
+            .groupBy(0, 1)
             .reduce(new CountHistogram())
-            .sortPartition(1, Order.ASCENDING);
+            .sortPartition(0, Order.ASCENDING);
 
         hist.print();
     }
