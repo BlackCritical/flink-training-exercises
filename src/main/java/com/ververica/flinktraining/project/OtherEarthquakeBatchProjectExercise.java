@@ -57,7 +57,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 .flatMap(new SIGAndCountry())
                 .groupBy(0)
                 .max(1)
-                .writeAsFormattedText("./output-max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+                .writeAsFormattedText("./output/max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
                 .name("SIGAndCoordinates");
 
         DataSink<String> sigAndCoordinatesSum = earthquakes
@@ -65,7 +65,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 .flatMap(new SIGAndCountry())
                 .groupBy(0)
                 .sum(1)
-                .writeAsFormattedText("./output-sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+                .writeAsFormattedText("./output/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
                 .name("SIGAndCoordinatesSum");
 
 
