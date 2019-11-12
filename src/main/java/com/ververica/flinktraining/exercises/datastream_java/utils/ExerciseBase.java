@@ -34,7 +34,7 @@ public class ExerciseBase {
 	public final static String pathToSmallEarthquakeData = "./trainingData/earthquake-small.json.gz";  // 50000 Features
 	public final static String pathToMediumEarthquakeData = "./trainingData/earthquake-medium.json.gz";  // 100000 Features
 	public final static String pathToBigEarthquakeData = "./trainingData/earthquake-big.json.gz";  // ~550000 Features
-	public final static String pathToALLEarthquakeData = "./trainingData/earthquakeALL-2014-2019.json.gz";  // 839523 Features
+	public final static String pathToALLEarthquakeData = "./trainingData/earthquakeALL-2014-2019.json.gz";  // 813445 Features
 	public final static String pathToLocationsUSA = "./trainingData/LongLatUSA.csv.gz";
 	public final static String pathToLocations = "./trainingData/Countries.csv.gz";
 	public final static String pathToRideData = "./trainingData/nycTaxiRides.gz";
