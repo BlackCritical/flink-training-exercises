@@ -31,9 +31,8 @@ public class TransformEarthquakeJSON {
 
 //        writeSubList(earthquake);
 //        mergeSources(earthquake);
-//        printTimeRange(earthquake);
-        findAndRemoveDuplicates(earthquake);
-        writeToFile(earthquake, "earthquakeALL-2014-2019CLEAN.json");
+        printTimeRange(earthquake);
+//        findAndRemoveDuplicates(earthquake);
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
@@ -56,6 +55,7 @@ public class TransformEarthquakeJSON {
         }
         System.out.println(Arrays.toString(dupIds.toArray()));
         dupIndexs.forEach(index -> earthquake.features.remove(index.intValue()));
+        writeToFile(earthquake, "earthquakeALL-2014-2019CLEAN.json");
     }
 
     private static void mergeSources(EarthquakeCollection earthquake) throws IOException {
