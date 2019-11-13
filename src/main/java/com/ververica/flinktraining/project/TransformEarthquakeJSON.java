@@ -33,6 +33,17 @@ public class TransformEarthquakeJSON {
 //        mergeSources(earthquake);
         printTimeRange(earthquake);
 //        findAndRemoveDuplicates(earthquake);
+        featurePropertyNullCount(earthquake);
+    }
+
+    private static void featurePropertyNullCount(EarthquakeCollection earthquake) {
+        int count = 0;
+        for (Feature feature : earthquake.features) {
+            if (feature.properties.nst == null) {
+                count++;
+            }
+        }
+        System.out.println("count:" + count);
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {

@@ -10,7 +10,7 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.DataSink;
+import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
@@ -36,6 +36,7 @@ import java.util.Locale;
 public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static final int UNDEFINED_MAGNITUDE = -9999;
+    public static final double NULL_VALUE = -99999;
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
@@ -71,13 +72,21 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
 //                .name("Location, SIG And Coordinates");
 
-        DataSink<String> events = earthquakes
+        FlatMapOperator<Tuple5<Double, Double, Long, Double, Long>, Tuple4<String, Long, Double, Long>> events = earthquakes
                 .flatMap(new MapEventsToLocationCoordinates())
                 .flatMap(new MapEventsToLocation())
+                .name("Latitude, longitude, SIG, magType, tsunami");
+
+        events
                 .groupBy(0)
                 .max(1)
-                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format(Locale.US,"%s;%d;%f;%s;", value.f0, value.f1, value.f2, value.f3))
-                .name("Latitude, longitude, SIG, nst, tsunami");
+                .writeAsFormattedText("./output/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format(Locale.US, "%s;%d", value.f0, value.f1));
+
+        events
+                .groupBy(0)
+                .sum(3)
+                .writeAsFormattedText("./output/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f3));
+//        events.writeAsFormattedText("./output/max-MAG-Type-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
 
 //        DataSink<String> sigAndCoordinatesSum = earthquakes
 //                .flatMap(new SIGAndCoordinates())
@@ -233,14 +242,14 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple5<Double, Double, Long, Double, Boolean>> {
+    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple5<Double, Double, Long, Double, Long>> {
 
         // out -> (latitude, longitude, SIG, nst, tsunami)
         @Override
-        public void flatMap(Feature feature, Collector<Tuple5<Double, Double, Long, Double, Boolean>> collector) {
+        public void flatMap(Feature feature, Collector<Tuple5<Double, Double, Long, Double, Long>> collector) {
             List<Double> coordinates = feature.geometry.coordinates;
             if (!coordinates.isEmpty()) {
-                collector.collect(new Tuple5<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, feature.properties.nst, getTsunami(feature.properties.tsunami)));
+                collector.collect(new Tuple5<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, feature.properties.nst != null ? feature.properties.nst : NULL_VALUE, feature.properties.tsunami));
             }
         }
 
@@ -252,7 +261,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class MapEventsToLocation implements FlatMapFunction<Tuple5<Double, Double, Long, Double, Boolean>, Tuple4<String, Long, Double, Boolean>> {
+    private static class MapEventsToLocation implements FlatMapFunction<Tuple5<Double, Double, Long, Double, Long>, Tuple4<String, Long, Double, Long>> {
 
         private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
 
@@ -260,7 +269,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
 
         @Override
-        public void flatMap(Tuple5<Double, Double, Long, Double, Boolean> value, Collector<Tuple4<String, Long, Double, Boolean>> collector) throws Exception {
+        public void flatMap(Tuple5<Double, Double, Long, Double, Long> value, Collector<Tuple4<String, Long, Double, Long>> collector) throws Exception {
             String country = getCountry(value.f0, value.f1);
             collector.collect(new Tuple4<>(country, value.f2, value.f3, value.f4));
         }
