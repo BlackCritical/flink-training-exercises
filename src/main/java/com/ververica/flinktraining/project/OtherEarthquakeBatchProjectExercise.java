@@ -13,6 +13,8 @@ import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.DataSink;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
@@ -20,6 +22,7 @@ import org.apache.flink.util.Collector;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -52,25 +55,41 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //                .flatMap(new MagnitudeHistogram())
 //                .reduceGroup(new GroupCountHistogram());
 
-        DataSink<String> sigAndCoordinates = earthquakes
-                .flatMap(new SIGAndCoordinates())
-                .flatMap(new SIGAndCountry())
+//        DataSink<String> sigAndCoordinates = earthquakes
+//                .flatMap(new SIGAndCoordinates())
+//                .flatMap(new SIGAndCountry())
+//                .groupBy(0)
+//                .max(1)
+//                .writeAsFormattedText("./output/max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+//                .name("SIGAndCoordinates");
+
+//        DataSink<String> sig = earthquakes
+//                .flatMap(new PlaceSIGAndCoordinates())
+//                .flatMap(new PlaceSIGAndCountry())
+//                .groupBy(0)
+//                .max(1)
+//                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
+//                .name("Location, SIG And Coordinates");
+
+        DataSink<String> events = earthquakes
+                .flatMap(new MapEventsToLocationCoordinates())
+                .flatMap(new MapEventsToLocation())
                 .groupBy(0)
                 .max(1)
-                .writeAsFormattedText("./output/max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
-                .name("SIGAndCoordinates");
+                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format(Locale.US,"%s;%d;%f;%s;", value.f0, value.f1, value.f2, value.f3))
+                .name("Latitude, longitude, SIG, nst, tsunami");
 
-        DataSink<String> sigAndCoordinatesSum = earthquakes
-                .flatMap(new SIGAndCoordinates())
-                .flatMap(new SIGAndCountry())
-                .groupBy(0)
-                .sum(1)
-                .writeAsFormattedText("./output/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
-                .name("SIGAndCoordinatesSum");
+//        DataSink<String> sigAndCoordinatesSum = earthquakes
+//                .flatMap(new SIGAndCoordinates())
+//                .flatMap(new SIGAndCountry())
+//                .groupBy(0)
+//                .sum(1)
+//                .writeAsFormattedText("./output/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+//                .name("SIGAndCoordinatesSum");
 
 
 //        sigAndCoordinates.print();
-        System.out.println("NetRuntime: " + env.execute().getNetRuntime());
+        System.out.println("NetRuntime: " + env.execute().getNetRuntime() + "ms");
     }
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple2<Tuple2<Integer, Integer>, Integer>> {
@@ -130,7 +149,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     private static class SIGAndCoordinates implements FlatMapFunction<Feature, Tuple3<Double, Double, Long>> {
 
-        // out -> (latitude, longitude, alertLevel)
+        // out -> (latitude, longitude, SIG)
         @Override
         public void flatMap(Feature feature, Collector<Tuple3<Double, Double, Long>> collector) {
             List<Double> coordinates = feature.geometry.coordinates;
@@ -158,6 +177,99 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
             String minName = "";
             for (Location location : locations) {
                 double distance = euklidDistance(f0, f1, location.latitude, location.longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    minName = location.name;
+                }
+            }
+            return minName;
+        }
+
+        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
+            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
+        }
+    }
+
+    private static class PlaceSIGAndCoordinates implements FlatMapFunction<Feature, Tuple4<String, Double, Double, Long>> {
+
+        // out -> (Location, latitude, longitude, SIG )
+        @Override
+        public void flatMap(Feature feature, Collector<Tuple4<String, Double, Double, Long>> collector) {
+            List<Double> coordinates = feature.geometry.coordinates;
+            if (!coordinates.isEmpty()) {
+                collector.collect(new Tuple4<>(feature.properties.place, coordinates.get(1), coordinates.get(0), feature.properties.sig));
+            }
+        }
+    }
+
+    private static class PlaceSIGAndCountry implements FlatMapFunction<Tuple4<String, Double, Double, Long>, Tuple3<String, String, Long>> {
+
+        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
+
+        private PlaceSIGAndCountry() throws IOException {
+        }
+
+        @Override
+        public void flatMap(Tuple4<String, Double, Double, Long> value, Collector<Tuple3<String, String, Long>> collector) throws Exception {
+            String country = getCountry(value.f1, value.f2);
+            collector.collect(new Tuple3<>(value.f0, country, value.f3));
+        }
+
+        private String getCountry(double latitude, double longitude) throws Exception {
+            double minDistance = Double.MAX_VALUE;
+            String minName = "";
+            for (Location location : locations) {
+                double distance = euklidDistance(latitude, longitude, location.latitude, location.longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    minName = location.name;
+                }
+            }
+            return minName;
+        }
+
+        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
+            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
+        }
+    }
+
+    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple5<Double, Double, Long, Double, Boolean>> {
+
+        // out -> (latitude, longitude, SIG, nst, tsunami)
+        @Override
+        public void flatMap(Feature feature, Collector<Tuple5<Double, Double, Long, Double, Boolean>> collector) {
+            List<Double> coordinates = feature.geometry.coordinates;
+            if (!coordinates.isEmpty()) {
+                collector.collect(new Tuple5<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, feature.properties.nst, getTsunami(feature.properties.tsunami)));
+            }
+        }
+
+        private Boolean getTsunami(Long tsunami) {
+            if (tsunami != null) {
+                return tsunami == 1;
+            }
+            return null;
+        }
+    }
+
+    private static class MapEventsToLocation implements FlatMapFunction<Tuple5<Double, Double, Long, Double, Boolean>, Tuple4<String, Long, Double, Boolean>> {
+
+        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
+
+        private MapEventsToLocation() throws IOException {
+        }
+
+        @Override
+        public void flatMap(Tuple5<Double, Double, Long, Double, Boolean> value, Collector<Tuple4<String, Long, Double, Boolean>> collector) throws Exception {
+            String country = getCountry(value.f0, value.f1);
+            collector.collect(new Tuple4<>(country, value.f2, value.f3, value.f4));
+        }
+
+        private String getCountry(double latitude, double longitude) throws Exception {
+            double minDistance = Double.MAX_VALUE;
+            String minName = "";
+            for (Location location : locations) {
+                double distance = euklidDistance(latitude, longitude, location.latitude, location.longitude);
                 if (distance < minDistance) {
                     minDistance = distance;
                     minName = location.name;
