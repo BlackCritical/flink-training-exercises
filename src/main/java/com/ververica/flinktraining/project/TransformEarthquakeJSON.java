@@ -39,11 +39,11 @@ public class TransformEarthquakeJSON {
     private static void featurePropertyNullCount(EarthquakeCollection earthquake) {
         int count = 0;
         for (Feature feature : earthquake.features) {
-            if (feature.properties.nst == null) {
+            if (feature.properties.status == null) {
                 count++;
             }
         }
-        System.out.println("count:" + count);
+        System.out.println("count: " + count);
     }
 
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
