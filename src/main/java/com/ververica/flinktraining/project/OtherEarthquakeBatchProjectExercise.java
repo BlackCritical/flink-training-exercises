@@ -10,12 +10,13 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.GroupReduceOperator;
+import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.io.IOException;
@@ -33,6 +34,8 @@ import java.util.List;
  */
 public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
+    private static final String UNDEFINED = "UNDEFINED";
+    public static final int UNDEFINED_MAGNITUDE = -9999;
     public static final double NULL_VALUE = -99999;
 
     public static void main(String[] args) throws Exception {
@@ -49,9 +52,9 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         DataSet<Feature> earthquakes = env.fromCollection(earthquakeCollection.features);
 
-        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
-                .flatMap(new MagnitudeHistogram())
-                .reduceGroup(new GroupCountHistogram());
+//        GroupReduceOperator<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> hist = earthquakes
+//                .flatMap(new MagnitudeHistogram())
+//                .reduceGroup(new GroupCountHistogram());
 
 
 
@@ -72,15 +75,15 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
 //                .name("Location, SIG And Coordinates");
 
-//        FlatMapOperator<Tuple5<Double, Double, Long, Double, Long>, Tuple4<String, Long, Double, Long>> events = earthquakes
-//                .flatMap(new MapEventsToLocationCoordinates())
-//                .flatMap(new MapEventsToLocation())
-//                .name("Latitude, longitude, SIG, magType, tsunami");
-//
-//        events
-//                .groupBy(0)
-//                .max(1)
-//                .writeAsFormattedText("./output/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
+        FlatMapOperator<Tuple5<Double, Double, Long, Double, Long>, Tuple4<String, Long, Double, Long>> events = earthquakes
+                .flatMap(new MapEventsToLocationCoordinates())
+                .flatMap(new MapEventsToLocation())
+                .name("Latitude, longitude, SIG, magType, tsunami");
+
+        events
+                .groupBy(0)
+                .max(1)
+                .writeAsFormattedText("./output/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
 
 //        events
 //                .groupBy(0)
@@ -103,9 +106,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple4<Tuple2<Integer, Integer>, Integer, String, String>> {
 
-        private static final String UNDEFINED = "UNDEFINED";
-        public static final int UNDEFINED_MAGNITUDE = -9999;
-
         @Override
         public void flatMap(Feature value, Collector<Tuple4<Tuple2<Integer, Integer>, Integer, String, String>> out) throws Exception {
             String magType = value.properties.magType;
@@ -114,7 +114,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 double mag = value.properties.mag;
                 for (int i = -1; i < 10; i++) {
                     if (i <= mag && mag < i + 1) {
-                        out.collect(new Tuple4<>(new Tuple2<>(i, i + 1), 1, magType != null ? magType : UNDEFINED, reviewStatus != null ? reviewStatus : UNDEFINED));
+                        out.collect(new Tuple4<>(new Tuple2<>(i, i + 1), 1, magType != null ? magType : UNDEFINED, reviewStatus != null ? reviewStatus.equalsIgnoreCase("reviewed") : UNDEFINED));
                         if (i > 7) {
                             System.out.println("Extreme Case:");
                             System.out.println(value);
@@ -131,11 +131,11 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class GroupCountHistogram implements GroupReduceFunction<Tuple2<Tuple2<Integer, Integer>, Integer>, Tuple2<Tuple2<Integer, Integer>, Integer>> {
+    private static class GroupCountHistogram implements GroupReduceFunction<Tuple4<Tuple2<Integer, Integer>, Integer, String, String>, Tuple2<Tuple2<Integer, Integer>, Integer>> {
         public static final int UNDEFINED_MAGNITUDE = -9999;
 
         @Override
-        public void reduce(Iterable<Tuple2<Tuple2<Integer, Integer>, Integer>> values, Collector<Tuple2<Tuple2<Integer, Integer>, Integer>> out) throws Exception {
+        public void reduce(Iterable<Tuple4<Tuple2<Integer, Integer>, Integer, String, String>> values, Collector<Tuple2<Tuple2<Integer, Integer>, Integer>> out) throws Exception {
             HashMap<Integer, Integer> histValues = new HashMap<>();
             histValues.put(UNDEFINED_MAGNITUDE, 0);
             for (int i = -1; i < 10; i++) {
