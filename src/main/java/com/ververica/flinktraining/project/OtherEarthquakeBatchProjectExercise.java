@@ -5,6 +5,7 @@ import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
 import com.ververica.flinktraining.project.model.Location;
+import com.ververica.flinktraining.project.util.MagnitudeType;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
@@ -37,13 +38,22 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     private static final String UNDEFINED = "UNDEFINED";
     public static final int UNDEFINED_MAGNITUDE = -9999;
-    public static final int MIN_MAGNITUDE = -1;
+    public static final int MIN_MAGNITUDE = -10;
     public static final int MAX_MAGNITUDE = 10;
     public static final double NULL_VALUE = -99999;
 
+    private static int[] MAGNITUDES = new int[MAX_MAGNITUDE - MIN_MAGNITUDE + 1];
+
+    static {
+        int j = 0;
+        for (int i = MIN_MAGNITUDE; i < MAX_MAGNITUDE; i++) {
+            MAGNITUDES[j++] = i;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToBigEarthquakeData);
+        final String input = params.get("input", pathToALLEarthquakeData);
 //        final String inputCSV = params.get("inputCSV", pathToLocations);
 
         EarthquakeCollection earthquakeCollection = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
@@ -55,18 +65,20 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         DataSet<Feature> earthquakes = env.fromCollection(earthquakeCollection.features);
 
         FlatMapOperator<Feature, Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> hist = earthquakes
-            .filter(new MagnitudeNotNullFilter())
-            .flatMap(new MagnitudeHistogram());
+                .filter(new MagnitudeNotNullFilter())
+                .flatMap(new MagnitudeHistogram());
 
         hist
-            .reduceGroup(new GroupCountHistogram())
-            .sortPartition(value -> value.f0.f0, Order.ASCENDING)
-            .writeAsFormattedText("./output/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+                .reduceGroup(new GroupCountHistogram())
+                .sortPartition(value -> value.f0.f0, Order.ASCENDING)
+                .writeAsFormattedText("./output/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
         hist
-            .flatMap(new MagnitudeTypeMap())
-            .groupBy(0)
-            .reduceGroup(new GroupCountMagnitudeType());
+                .flatMap(new MagnitudeTypeMap())
+                .groupBy(0)
+                .reduceGroup(new GroupCountMagnitudeType())
+                .sortPartition(value -> value.f0.f0, Order.ASCENDING)
+                .writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
 //        DataSink<String> sigAndCoordinates = earthquakes
 //                .flatMap(new SIGAndCoordinates())
@@ -117,7 +129,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         /**
          * @param value Feature as Input
-         * @param out -> [(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)]
+         * @param out   -> [(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)]
          */
         @Override
         public void flatMap(Feature value, Collector<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> out) {
@@ -125,21 +137,18 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
             String reviewStatus = value.properties.status;
             double mag = value.properties.mag;
 
-            for (int i = MIN_MAGNITUDE; i < MAX_MAGNITUDE; i++) {
-                if (i <= mag && mag < i + 1) {  // find correct range
-                    out.collect(new Tuple4<>(new Tuple2<>(i, i + 1), 1, magType != null ? magType : UNDEFINED, isReviewed(reviewStatus)));
-                    if (i > 7) {
+            for (int minMagnitude : MAGNITUDES) {
+                if (minMagnitude <= mag && mag < minMagnitude + 1) {  // find correct range
+                    magType = magType != null ? magType : UNDEFINED;
+                    out.collect(new Tuple4<>(new Tuple2<>(minMagnitude, minMagnitude + 1), 1, magType, isReviewed(reviewStatus)));
+
+                    if (minMagnitude >= 8) {
                         System.out.println("Extreme Case:");
                         System.out.println(value);
                     }
                     return;
                 }
             }
-
-            // This Edgecase will almost never occur and is mostly implemented for completeness. Earthquakes with this Magnitude are unnoticeable for humans
-            System.out.println("Magnitude Out of Range:");
-            System.out.println(value);
-            out.collect(new Tuple4<>(new Tuple2<>(-100, MIN_MAGNITUDE), 1, magType != null ? magType : UNDEFINED, isReviewed(reviewStatus)));
         }
 
         /**
@@ -154,14 +163,13 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         /**
          * @param values ->[(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)] as Input
-         * @param out -> [(min_Magnitude, max_Magnitude), Magnitude Count, Review Status]
+         * @param out    -> [(min_Magnitude, max_Magnitude), Magnitude Count, Review Status]
          */
         @Override
         public void reduce(Iterable<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> out) throws Exception {
             HashMap<Integer, Tuple2<Integer, Integer>> histValues = new HashMap<>();  // Map RangeBegin -> (count of magnitudes in this Range, count of status in this Range)
-            histValues.put(-100, new Tuple2<>(0, 0));  // All very small magnitude earthquakes in one category
-            for (int i = MIN_MAGNITUDE; i < MAX_MAGNITUDE; i++) {
-                histValues.put(i, new Tuple2<>(0, 0));  // init
+            for (int minMagnitude : MAGNITUDES) {
+                histValues.put(minMagnitude, new Tuple2<>(0, 0));  // init
             }
             values.iterator().forEachRemaining(value -> {
                 Tuple2<Integer, Integer> currentVal = histValues.get(value.f0.f0);
@@ -184,7 +192,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         /**
          * @param value -> [(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)] as Input
-         * @param out -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
+         * @param out   -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
          */
         @Override
         public void flatMap(Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer> value, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) throws Exception {
@@ -192,26 +200,42 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class GroupCountMagnitudeType implements GroupReduceFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> {
+    private static class GroupCountMagnitudeType implements GroupReduceFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>> {
 
         /**
-         * @param values -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Input
-         * @param out -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always greater or equal to 1)] as Output
+         * @param values -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
+         * @param out    -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
          */
         @Override
-        public void reduce(Iterable<Tuple3<Tuple2<Integer, Integer>, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> out) throws Exception {
-            HashMap<Integer, Tuple2<Integer, Integer>> histValues = new HashMap<>();  // Map RangeBegin -> (count of magnitudes in this Range, count of status in this Range)
-            histValues.put(-100, new Tuple2<>(0, 0));  // All very small magnitude earthquakes in one category TODO alten code nehmen
-            for (int i = MIN_MAGNITUDE; i < MAX_MAGNITUDE; i++) {
-                histValues.put(i, new Tuple2<>(0, 0));  // init
+        public void reduce(Iterable<Tuple3<Tuple2<Integer, Integer>, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) throws Exception {
+            HashMap<Integer, HashMap<String, Integer>> minMagToTypeToCountMap = new HashMap<>();
+
+            for (int minMagnitude : MAGNITUDES) {
+                HashMap<String, Integer> typeToCount = new HashMap<>();
+                for (MagnitudeType type : MagnitudeType.values()) {
+                    typeToCount.put(type.name(), 1);
+                }
+                minMagToTypeToCountMap.put(minMagnitude, typeToCount);
             }
             values.iterator().forEachRemaining(value -> {
-                Tuple2<Integer, Integer> currentVal = histValues.get(value.f0.f0);
-                currentVal.f0 += value.f1;  // Increase Mag Count
-                currentVal.f1 += value.f3;  // Increase Reviewed Count
-                histValues.put(value.f0.f0, currentVal);
+                HashMap<String, Integer> currentValues = minMagToTypeToCountMap.get(value.f0.f0);
+                for (String magTypeName : currentValues.keySet()) {
+                    for (String shortForm : MagnitudeType.valueOf(magTypeName).getShortForms()) {
+                        if (shortForm.equalsIgnoreCase(value.f1)) {
+                            currentValues.merge(magTypeName, 1, Integer::sum);
+                            break;
+                        }
+                    }
+                }
+//                minMagToTypeToCountMap.merge(value.f0.f0, currentValues, (currentValue, newValue) -> {
+//                    currentValue.putAll(newValue);
+//                    return currentValue;
+//                });
             });
-            histValues.forEach((key, value) -> out.collect(new Tuple3<>(new Tuple2<>(key, key + 1), value.f0, value.f1)));
+            minMagToTypeToCountMap
+                    .forEach((minMag, typeToCount) ->
+                            typeToCount.forEach((type, count) ->
+                                    out.collect(new Tuple3<>(new Tuple2<>(minMag, minMag + 1), type, count))));
         }
     }
 
