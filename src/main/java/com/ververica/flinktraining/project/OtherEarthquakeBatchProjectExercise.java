@@ -53,7 +53,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToALLEarthquakeData);
+        final String input = params.get("input", pathToBigEarthquakeData);
 //        final String inputCSV = params.get("inputCSV", pathToLocations);
 
         EarthquakeCollection earthquakeCollection = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
@@ -75,7 +75,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         hist
                 .flatMap(new MagnitudeTypeMap())
-                .groupBy(0)
                 .reduceGroup(new GroupCountMagnitudeType())
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
                 .writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
@@ -213,7 +212,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
             for (int minMagnitude : MAGNITUDES) {
                 HashMap<String, Integer> typeToCount = new HashMap<>();
                 for (MagnitudeType type : MagnitudeType.values()) {
-                    typeToCount.put(type.name(), 1);
+                    typeToCount.put(type.name(), 0);
                 }
                 minMagToTypeToCountMap.put(minMagnitude, typeToCount);
             }
