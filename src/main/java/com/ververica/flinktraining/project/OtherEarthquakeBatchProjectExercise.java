@@ -79,12 +79,12 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         events
                 .groupBy(0)
                 .max(1)
-                .writeAsFormattedText("./output/batch/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
+                .writeAsFormattedText("./output/batch/max-sig-location", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
 
         events
                 .groupBy(0)
                 .sum(2)
-                .writeAsFormattedText("./output/batch/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
+                .writeAsFormattedText("./output/batch/max-Tsunami-location", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
 
         System.out.println("NetRuntime: " + env.execute().getNetRuntime() + "ms");
     }

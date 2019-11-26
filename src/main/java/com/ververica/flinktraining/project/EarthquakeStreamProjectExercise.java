@@ -89,12 +89,12 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         events
 				.keyBy(0)
 				.max(1)
-                .writeAsCsv("./output/stream/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, "\n", ";");
+                .writeAsCsv("./output/stream/max-sig-location", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
 		events
 				.keyBy(0)
 				.sum(2)
-                .writeAsCsv("./output/stream/sum-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, "\n", ";");
+                .writeAsCsv("./output/stream/sum-Tsunami-location", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
 
 		// print the filtered stream
