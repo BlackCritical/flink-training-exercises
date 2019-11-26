@@ -4,7 +4,6 @@ import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Location;
-import com.ververica.flinktraining.project.util.MagnitudeType;
 import org.apache.flink.api.java.utils.ParameterTool;
 
 import java.io.*;
@@ -40,23 +39,11 @@ public class TransformEarthquakeJSON {
     private static void featurePropertyNullCount(EarthquakeCollection earthquake) {
         int count = 0;
         for (Feature feature : earthquake.features) {
-            String magType = feature.properties.magType;
+            Long magType = feature.properties.tsunami;
             if (magType == null) {
                 count++;
-            } else {
-                boolean exists = false;
-                for (MagnitudeType type : MagnitudeType.values()) {
-                    for (String name : type.getShortForms()) {
-                        if (name.equalsIgnoreCase(magType)) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                }
-                if (!exists) {
-                    System.out.println(magType);
-                }
-            }
+            } else if (magType > 1)
+                count++;
         }
         System.out.println("count: " + count);
     }
