@@ -8,9 +8,7 @@ import com.ververica.flinktraining.project.magnitude.stream.WindowCountHistogram
 import com.ververica.flinktraining.project.magnitude.stream.WindowCountMagnitudeType;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
-import com.ververica.flinktraining.project.model.Geometry;
 import com.ververica.flinktraining.project.model.Location;
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.state.ListState;
@@ -32,11 +30,6 @@ import org.apache.flink.util.Collector;
 import static com.ververica.flinktraining.project.TransformEarthquakeJSON.readEarthquakeFromJSON;
 
 /**
- * The "Ride Cleansing" exercise from the Flink training
- * (http://training.ververica.com).
- * The task of the exercise is to filter a data stream of taxi ride records to keep only rides that
- * start and end within New York City. The resulting stream should be printed.
- *
  * Parameters:
  *   -input path-to-input-file
  *
@@ -108,21 +101,6 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 		// run the pipeline
 		System.out.println("NetRuntime: " + env.execute("Earthquake Streaming").getNetRuntime() + "ms");
-	}
-
-	private static class LocationFilter implements FilterFunction<Feature> {
-		@Override
-		public boolean filter(Feature value) throws Exception {
-			Geometry geometry = value.geometry;
-			if (geometry.type.equalsIgnoreCase("Point") && !geometry.coordinates.isEmpty()) {
-				double longitude = geometry.coordinates.get(0);
-				double latitude = geometry.coordinates.get(1);
-//				double depth = geometry.coordinates.get(2);
-
-				return longitude > 0 && latitude > 0;
-			}
-			return false;
-		}
 	}
 
 	private static class CountAssigner implements FlatMapFunction<Feature, Tuple2<Feature, Integer>> {

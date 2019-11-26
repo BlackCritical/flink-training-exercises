@@ -16,11 +16,6 @@ import org.apache.flink.util.Collector;
 import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.UNDEFINED_MAGNITUDE;
 
 /**
- * The "Ride Cleansing" exercise from the Flink training
- * (http://training.ververica.com).
- * The task of the exercise is to filter a data stream of taxi ride records to keep only rides that
- * start and end within New York City. The resulting stream should be printed.
- * <p>
  * Parameters:
  * -input path-to-input-file
  */
@@ -58,10 +53,6 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
                 for (int i = -1; i < 10; i++) {
                     if (i <= mag && mag < i + 1) {
                         out.collect(new Tuple3<>(i, i + 1, 1));
-                        if (i > 7) {
-                            System.out.println("Extreme Case:");
-                            System.out.println(value);
-                        }
                         return;
                     }
                 }

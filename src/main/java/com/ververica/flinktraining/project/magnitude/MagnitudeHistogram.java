@@ -25,11 +25,6 @@ public class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple4<Tuple
             if (minMagnitude <= mag && mag < minMagnitude + 1) {  // find correct range
                 magType = magType != null ? magType : UNDEFINED;
                 out.collect(new Tuple4<>(new Tuple2<>(minMagnitude, minMagnitude + 1), 1, magType, isReviewed(reviewStatus)));
-
-                if (minMagnitude >= 8) {
-                    System.out.println("Extreme Case:");
-                    System.out.println(value);
-                }
                 return;
             }
         }
@@ -39,6 +34,6 @@ public class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple4<Tuple
      * @return 1 if review else 0
      */
     private int isReviewed(String reviewStatus) {
-        return reviewStatus != null ? reviewStatus.equalsIgnoreCase("reviewed") ? 1 : 0 : 0;
+        return (reviewStatus != null) ? (reviewStatus.equalsIgnoreCase("reviewed") ? 1 : 0) : 0;
     }
 }

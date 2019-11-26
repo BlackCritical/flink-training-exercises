@@ -7,15 +7,12 @@ import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
 import com.ververica.flinktraining.project.magnitude.MagnitudeTypeMap;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
-import com.ververica.flinktraining.project.model.Geometry;
 import com.ververica.flinktraining.project.model.Location;
-import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.DataSink;
 import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -29,11 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * The "Ride Cleansing" exercise from the Flink training
- * (http://training.ververica.com).
- * The task of the exercise is to filter a data stream of taxi ride records to keep only rides that
- * start and end within New York City. The resulting stream should be printed.
- * <p>
  * Parameters:
  * -input path-to-input-file
  */
@@ -43,7 +35,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
     public static final int UNDEFINED_MAGNITUDE = -9999;
     public static final int MIN_MAGNITUDE = -10;
     public static final int MAX_MAGNITUDE = 10;
-    public static final double NULL_VALUE = -99999;
 
     public static int[] MAGNITUDES = new int[MAX_MAGNITUDE - MIN_MAGNITUDE + 1];
 
@@ -56,8 +47,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
-        final String input = params.get("input", pathToBigEarthquakeData);
-//        final String inputCSV = params.get("inputCSV", pathToLocations);
+        final String input = params.get("input", pathToALLEarthquakeData);
 
         EarthquakeCollection earthquakeCollection = TransformEarthquakeJSON.readEarthquakeFromJSON(input);
 
@@ -82,23 +72,8 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
                 .writeAsFormattedText("./output/batch/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
-        DataSink<String> sigAndCoordinates = earthquakes
-                .flatMap(new SIGAndCoordinates())
-                .flatMap(new SIGAndCountry())
-                .groupBy(0)
-                .max(1)
-                .writeAsFormattedText("./output/batch/max-sig-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
-                .name("SIGAndCoordinates");
 
-//        DataSink<String> sig = earthquakes
-//                .flatMap(new PlaceSIGAndCoordinates())
-//                .flatMap(new PlaceSIGAndCountry())
-//                .groupBy(0)
-//                .max(1)
-//                .writeAsFormattedText("./output/batch/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
-//                .name("Location, SIG And Coordinates");
-
-        FlatMapOperator<Tuple4<Double, Double, Long, Boolean>, Tuple3<String, Long, Boolean>> events = earthquakes
+        FlatMapOperator<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> events = earthquakes
                 .flatMap(new MapEventsToLocationCoordinates())
                 .flatMap(new MapEventsToLocation())
                 .name("Country Name, SIG, Tsunami");
@@ -110,19 +85,9 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
         events
                 .groupBy(0)
-                .sum(3)
+                .sum(2)
                 .writeAsFormattedText("./output/batch/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
 
-//        DataSink<String> sigAndCoordinatesSum = earthquakes
-//                .flatMap(new SIGAndCoordinates())
-//                .flatMap(new SIGAndCountry())
-//                .groupBy(0)
-//                .sum(1)
-//                .writeAsFormattedText("./output/batch/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
-//                .name("SIGAndCoordinatesSum");
-
-
-//        sigAndCoordinates.print();
         System.out.println("NetRuntime: " + env.execute().getNetRuntime() + "ms");
     }
 
@@ -145,22 +110,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 histValues.put(value.f0.f0, currentVal);
             });
             histValues.forEach((key, value) -> out.collect(new Tuple3<>(new Tuple2<>(key, key + 1), value.f0, value.f1)));
-        }
-    }
-
-    private static class LocationFilter implements FilterFunction<Feature> {
-        @Override
-        public boolean filter(Feature value) throws Exception {
-            Geometry geometry = value.geometry;
-            if (geometry.type.equalsIgnoreCase("Point") && !geometry.coordinates.isEmpty()) {
-                double longitude = geometry.coordinates.get(0);
-                double latitude = geometry.coordinates.get(1);
-//				double depth = geometry.coordinates.get(2);
-
-//				return longitude > 10 && latitude > 10;
-                return 47.40723 < latitude && latitude < 54.908 && 5.98814 < longitude && longitude < 14.98854;  // GERMANY
-            }
-            return false;
         }
     }
 
@@ -207,72 +156,22 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         }
     }
 
-    private static class PlaceSIGAndCoordinates implements FlatMapFunction<Feature, Tuple4<String, Double, Double, Long>> {
-
-        // out -> (Location, latitude, longitude, SIG )
-        @Override
-        public void flatMap(Feature feature, Collector<Tuple4<String, Double, Double, Long>> collector) {
-            List<Double> coordinates = feature.geometry.coordinates;
-            if (!coordinates.isEmpty()) {
-                collector.collect(new Tuple4<>(feature.properties.place, coordinates.get(1), coordinates.get(0), feature.properties.sig));
-            }
-        }
-    }
-
-    private static class PlaceSIGAndCountry implements FlatMapFunction<Tuple4<String, Double, Double, Long>, Tuple3<String, String, Long>> {
-
-        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
-
-        private PlaceSIGAndCountry() throws IOException {
-        }
-
-        @Override
-        public void flatMap(Tuple4<String, Double, Double, Long> value, Collector<Tuple3<String, String, Long>> collector) throws Exception {
-            String country = getCountry(value.f1, value.f2);
-            collector.collect(new Tuple3<>(value.f0, country, value.f3));
-        }
-
-        private String getCountry(double latitude, double longitude) throws Exception {
-            double minDistance = Double.MAX_VALUE;
-            String minName = "";
-            for (Location location : locations) {
-                double distance = euklidDistance(latitude, longitude, location.latitude, location.longitude);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    minName = location.name;
-                }
-            }
-            return minName;
-        }
-
-        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
-            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
-        }
-    }
-
-    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple4<Double, Double, Long, Boolean>> {
+    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple4<Double, Double, Long, Long>> {
 
         /**
          * @param feature       -> Earthquake Feature
          * @param collector     -> [latitude, longitude, SIG, tsunami(true/false)]
          */
         @Override
-        public void flatMap(Feature feature, Collector<Tuple4<Double, Double, Long, Boolean>> collector) {
+        public void flatMap(Feature feature, Collector<Tuple4<Double, Double, Long, Long>> collector) {
             List<Double> coordinates = feature.geometry.coordinates;
             if (!coordinates.isEmpty()) {
-                collector.collect(new Tuple4<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, getTsunami(feature.properties.tsunami)));
+                collector.collect(new Tuple4<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, feature.properties.tsunami));
             }
-        }
-
-        private Boolean getTsunami(Long tsunami) {
-            if (tsunami != null) {
-                return tsunami == 1;
-            }
-            return null;
         }
     }
 
-    private static class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Double, Long, Boolean>, Tuple3<String, Long, Boolean>> {
+    private static class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> {
 
         private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
 
@@ -284,7 +183,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
          * @param collector     -> [countryName, SIG, tsunami(true/false)]
          */
         @Override
-        public void flatMap(Tuple4<Double, Double, Long, Boolean> value, Collector<Tuple3<String, Long, Boolean>> collector) {
+        public void flatMap(Tuple4<Double, Double, Long, Long> value, Collector<Tuple3<String, Long, Long>> collector) {
             String country = getCountry(value.f0, value.f1);
             collector.collect(new Tuple3<>(country, value.f2, value.f3));
         }
