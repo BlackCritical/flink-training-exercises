@@ -1,14 +1,14 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
+import com.ververica.flinktraining.project.location.MapEventsToLocation;
+import com.ververica.flinktraining.project.location.MapEventsToLocationCoordinates;
 import com.ververica.flinktraining.project.magnitude.GroupCountMagnitudeType;
 import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
 import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
 import com.ververica.flinktraining.project.magnitude.MagnitudeTypeMap;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
-import com.ververica.flinktraining.project.model.Location;
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.DataSet;
@@ -21,9 +21,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Parameters:
@@ -110,99 +108,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 histValues.put(value.f0.f0, currentVal);
             });
             histValues.forEach((key, value) -> out.collect(new Tuple3<>(new Tuple2<>(key, key + 1), value.f0, value.f1)));
-        }
-    }
-
-    private static class SIGAndCoordinates implements FlatMapFunction<Feature, Tuple3<Double, Double, Long>> {
-
-        // out -> (latitude, longitude, SIG)
-        @Override
-        public void flatMap(Feature feature, Collector<Tuple3<Double, Double, Long>> collector) {
-            List<Double> coordinates = feature.geometry.coordinates;
-            if (!coordinates.isEmpty()) {
-                collector.collect(new Tuple3<>(coordinates.get(1), coordinates.get(0), feature.properties.sig));
-            }
-        }
-    }
-
-    private static class SIGAndCountry implements FlatMapFunction<Tuple3<Double, Double, Long>, Tuple2<String, Long>> {
-
-        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
-
-        private SIGAndCountry() throws IOException {
-        }
-
-        @Override
-        public void flatMap(Tuple3<Double, Double, Long> value, Collector<Tuple2<String, Long>> collector) throws Exception {
-            String country = getCountry(value.f0, value.f1);
-            collector.collect(new Tuple2<>(country, value.f2));
-        }
-
-        private String getCountry(double f0, double f1) throws Exception {
-            double minDistance = Double.MAX_VALUE;
-            String minName = "";
-            for (Location location : locations) {
-                double distance = euklidDistance(f0, f1, location.latitude, location.longitude);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    minName = location.name;
-                }
-            }
-            return minName;
-        }
-
-        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
-            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
-        }
-    }
-
-    private static class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, Tuple4<Double, Double, Long, Long>> {
-
-        /**
-         * @param feature       -> Earthquake Feature
-         * @param collector     -> [latitude, longitude, SIG, tsunami(true/false)]
-         */
-        @Override
-        public void flatMap(Feature feature, Collector<Tuple4<Double, Double, Long, Long>> collector) {
-            List<Double> coordinates = feature.geometry.coordinates;
-            if (!coordinates.isEmpty()) {
-                collector.collect(new Tuple4<>(coordinates.get(1), coordinates.get(0), feature.properties.sig, feature.properties.tsunami));
-            }
-        }
-    }
-
-    private static class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> {
-
-        private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
-
-        private MapEventsToLocation() throws IOException {
-        }
-
-        /**
-         * @param value     -> [latitude, longitude, SIG, tsunami(true/false)]
-         * @param collector     -> [countryName, SIG, tsunami(true/false)]
-         */
-        @Override
-        public void flatMap(Tuple4<Double, Double, Long, Long> value, Collector<Tuple3<String, Long, Long>> collector) {
-            String country = getCountry(value.f0, value.f1);
-            collector.collect(new Tuple3<>(country, value.f2, value.f3));
-        }
-
-        private String getCountry(double latitude, double longitude) {
-            double minDistance = Double.MAX_VALUE;
-            String minName = "";
-            for (Location location : locations) {
-                double distance = euklidDistance(latitude, longitude, location.latitude, location.longitude);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    minName = location.name;
-                }
-            }
-            return minName;
-        }
-
-        private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
-            return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
         }
     }
 }

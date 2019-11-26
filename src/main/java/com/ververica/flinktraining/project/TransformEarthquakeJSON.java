@@ -118,7 +118,7 @@ public class TransformEarthquakeJSON {
         return GSON.fromJson(reader, EarthquakeCollection.class);
     }
 
-    static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
+    public static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
         System.out.println("READ!");
         ArrayList<Location> locations = new ArrayList<>();
         InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputCSV));
