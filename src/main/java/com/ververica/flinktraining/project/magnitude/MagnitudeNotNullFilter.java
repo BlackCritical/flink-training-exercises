@@ -5,7 +5,7 @@ import org.apache.flink.api.common.functions.FilterFunction;
 
 public class MagnitudeNotNullFilter implements FilterFunction<Feature> {
     @Override
-    public boolean filter(Feature value) throws Exception {
+    public boolean filter(Feature value) {
         return value.properties.mag != null;
     }
 }

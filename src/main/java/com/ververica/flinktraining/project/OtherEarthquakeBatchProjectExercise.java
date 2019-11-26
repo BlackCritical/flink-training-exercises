@@ -74,20 +74,20 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         hist
                 .reduceGroup(new GroupCountHistogram())
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
-                .writeAsFormattedText("./output/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+                .writeAsFormattedText("./output/batch/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
         hist
                 .flatMap(new MagnitudeTypeMap())
                 .reduceGroup(new GroupCountMagnitudeType())
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
-                .writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+                .writeAsFormattedText("./output/batch/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
 //        DataSink<String> sigAndCoordinates = earthquakes
 //                .flatMap(new SIGAndCoordinates())
 //                .flatMap(new SIGAndCountry())
 //                .groupBy(0)
 //                .max(1)
-//                .writeAsFormattedText("./output/max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+//                .writeAsFormattedText("./output/batch/max-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
 //                .name("SIGAndCoordinates");
 
 //        DataSink<String> sig = earthquakes
@@ -95,7 +95,7 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //                .flatMap(new PlaceSIGAndCountry())
 //                .groupBy(0)
 //                .max(1)
-//                .writeAsFormattedText("./output/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
+//                .writeAsFormattedText("./output/batch/max-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;%d;", value.f1, value.f0, value.f2))
 //                .name("Location, SIG And Coordinates");
 
 //        FlatMapOperator<Tuple5<Double, Double, Long, Double, Long>, Tuple4<String, Long, Double, Long>> events = earthquakes
@@ -106,20 +106,20 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 //        events
 //                .groupBy(0)
 //                .max(1)
-//                .writeAsFormattedText("./output/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
+//                .writeAsFormattedText("./output/batch/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
 
 //        events
 //                .groupBy(0)
 //                .sum(3)
-//                .writeAsFormattedText("./output/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f3));
-//        events.writeAsFormattedText("./output/max-MAG-Type-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
+//                .writeAsFormattedText("./output/batch/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f3));
+//        events.writeAsFormattedText("./output/batch/max-MAG-Type-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
 
 //        DataSink<String> sigAndCoordinatesSum = earthquakes
 //                .flatMap(new SIGAndCoordinates())
 //                .flatMap(new SIGAndCountry())
 //                .groupBy(0)
 //                .sum(1)
-//                .writeAsFormattedText("./output/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
+//                .writeAsFormattedText("./output/batch/sum-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d;", value.f0, value.f1))
 //                .name("SIGAndCoordinatesSum");
 
 

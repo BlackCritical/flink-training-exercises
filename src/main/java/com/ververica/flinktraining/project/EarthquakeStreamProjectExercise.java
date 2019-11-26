@@ -3,6 +3,7 @@ package com.ververica.flinktraining.project;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
 import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
+import com.ververica.flinktraining.project.magnitude.stream.WindowCountHistogram;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
@@ -12,22 +13,20 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
+import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
-
-import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
+import static com.ververica.flinktraining.project.TransformEarthquakeJSON.readEarthquakeFromJSON;
 
 /**
  * The "Ride Cleansing" exercise from the Flink training
@@ -44,18 +43,17 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
 		final String input = params.get("input", ExerciseBase.pathToBigEarthquakeData);
-		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 
-
-		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
-		final int servingSpeedFactor = 150; // events of 10 minutes are served in 1 second
+//		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
+//		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
+//		final int servingSpeedFactor = 150; // events of 10 minutes are served in 1 second
 
 		// set up streaming execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(ExerciseBase.parallelism);
 
 		EarthquakeCollection earthquake = readEarthquakeFromJSON(input);
-		List<Location> locationsCollection = TransformEarthquakeJSON.readLocationsFromCSV(inputCSV);
+//		List<Location> locationsCollection = TransformEarthquakeJSON.readLocationsFromCSV(inputCSV);
 
 		// start the data generator
 //		DataStream<Feature> earthquakes = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
@@ -66,11 +64,20 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 			.filter(new MagnitudeNotNullFilter())
 			.flatMap(new MagnitudeHistogram());
 
-//		hist
-//			.reduceGroup(new OtherEarthquakeBatchProjectExercise.GroupCountHistogram())
-//			.sortPartition(value -> value.f0.f0, Order.ASCENDING)
-//			.writeAsFormattedText("./output/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
-//
+		KeyedStream<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>, Tuple> processedHist = hist
+			.keyBy("f0.f0", "f0.f1")
+			.countWindow(1000)
+			.process(new WindowCountHistogram())
+			.keyBy("f0.f0", "f0.f1");
+
+		processedHist
+			.sum(1)
+			.writeAsCsv("./output/stream/magnitude_mag", FileSystem.WriteMode.OVERWRITE, "\n", ";");
+
+		processedHist
+			.sum(2)
+			.writeAsCsv("./output/stream/magnitude_rev", FileSystem.WriteMode.OVERWRITE, "\n", ";");
+
 //		hist
 //			.flatMap(new MagnitudeTypeMap())
 //			.reduceGroup(new GroupCountMagnitudeType())
@@ -78,27 +85,17 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 //			.writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
 
-		DataStream<Tuple2<Feature, Integer>> filteredRides = earthquakes
-				.filter(new LocationFilter())
-				.flatMap(new CountAssigner())
-				.keyBy(1)
-				.sum(1);
+//		DataStream<Tuple2<Feature, Integer>> filteredRides = earthquakes
+//				.filter(new LocationFilter())
+//				.flatMap(new CountAssigner())
+//				.keyBy(1)
+//				.sum(1);
 
 		// print the filtered stream
-		printOrTest(filteredRides);
+//		printOrTest(hist);
 
 		// run the cleansing pipeline
 		env.execute("Earthquake Streaming");
-	}
-
-	public static EarthquakeCollection readEarthquakeFromJSON(String path) throws IOException {
-		BufferedReader reader;
-		InputStream gzipStream;
-
-		gzipStream = new GZIPInputStream(new FileInputStream(path));
-		reader = new BufferedReader(new InputStreamReader(gzipStream, StandardCharsets.UTF_8));
-
-		return GSON.fromJson(reader, EarthquakeCollection.class);
 	}
 
 	private static class LocationFilter implements FilterFunction<Feature> {
