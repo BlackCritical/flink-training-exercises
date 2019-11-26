@@ -21,6 +21,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -42,7 +43,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
-		final String input = params.get("input", ExerciseBase.pathToBigEarthquakeData);
+		final String input = params.get("input", ExerciseBase.pathToMediumEarthquakeData);
 
 //		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 //		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
@@ -70,11 +71,11 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 			.process(new WindowCountHistogram())
 			.keyBy("f0.f0", "f0.f1");
 
-		processedHist
+		DataStreamSink<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> mag = processedHist
 			.sum(1)
 			.writeAsCsv("./output/stream/magnitude_mag", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
-		processedHist
+		DataStreamSink<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> reviewed = processedHist
 			.sum(2)
 			.writeAsCsv("./output/stream/magnitude_rev", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
@@ -92,10 +93,10 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 //				.sum(1);
 
 		// print the filtered stream
-//		printOrTest(hist);
+//		printOrTest(mag);
 
-		// run the cleansing pipeline
-		env.execute("Earthquake Streaming");
+		// run the pipeline
+		System.out.println("NetRuntime: " + env.execute("Earthquake Streaming").getNetRuntime() + "ms");
 	}
 
 	private static class LocationFilter implements FilterFunction<Feature> {
