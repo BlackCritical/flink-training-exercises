@@ -1,6 +1,8 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
+import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
+import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
@@ -12,10 +14,11 @@ import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 
@@ -39,7 +42,6 @@ import static com.ververica.flinktraining.exercises.datastream_java.sources.Eart
 public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 	public static void main(String[] args) throws Exception {
-
 		ParameterTool params = ParameterTool.fromArgs(args);
 		final String input = params.get("input", ExerciseBase.pathToBigEarthquakeData);
 		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
@@ -56,13 +58,27 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 		List<Location> locationsCollection = TransformEarthquakeJSON.readLocationsFromCSV(inputCSV);
 
 		// start the data generator
-//		DataStream<Feature> rides = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
-		DataStream<Feature> rides = env.fromCollection(earthquake.features);
-		DataStreamSource<Location> locations = env.fromCollection(locationsCollection);
+//		DataStream<Feature> earthquakes = env.addSource(new EarthquakeSource(input, maxEventDelay, servingSpeedFactor));
+		DataStream<Feature> earthquakes = env.fromCollection(earthquake.features);
+//		DataStreamSource<Location> locations = env.fromCollection(locationsCollection);
+
+		SingleOutputStreamOperator<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> hist = earthquakes
+			.filter(new MagnitudeNotNullFilter())
+			.flatMap(new MagnitudeHistogram());
+
+//		hist
+//			.reduceGroup(new OtherEarthquakeBatchProjectExercise.GroupCountHistogram())
+//			.sortPartition(value -> value.f0.f0, Order.ASCENDING)
+//			.writeAsFormattedText("./output/magnitude.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+//
+//		hist
+//			.flatMap(new MagnitudeTypeMap())
+//			.reduceGroup(new GroupCountMagnitudeType())
+//			.sortPartition(value -> value.f0.f0, Order.ASCENDING)
+//			.writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
 
-		DataStream<Tuple2<Feature, Integer>> filteredRides = rides
-				// filter out rides that do not start or stop in NYC
+		DataStream<Tuple2<Feature, Integer>> filteredRides = earthquakes
 				.filter(new LocationFilter())
 				.flatMap(new CountAssigner())
 				.keyBy(1)
@@ -72,7 +88,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 		printOrTest(filteredRides);
 
 		// run the cleansing pipeline
-		env.execute("Taxi Ride Cleansing");
+		env.execute("Earthquake Streaming");
 	}
 
 	public static EarthquakeCollection readEarthquakeFromJSON(String path) throws IOException {

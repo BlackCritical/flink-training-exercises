@@ -1,11 +1,14 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
+import com.ververica.flinktraining.project.magnitude.GroupCountMagnitudeType;
+import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
+import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
+import com.ververica.flinktraining.project.magnitude.MagnitudeTypeMap;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
 import com.ververica.flinktraining.project.model.Location;
-import com.ververica.flinktraining.project.util.MagnitudeType;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
@@ -36,13 +39,13 @@ import java.util.List;
  */
 public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
 
-    private static final String UNDEFINED = "UNDEFINED";
+    public static final String UNDEFINED = "UNDEFINED";
     public static final int UNDEFINED_MAGNITUDE = -9999;
     public static final int MIN_MAGNITUDE = -10;
     public static final int MAX_MAGNITUDE = 10;
     public static final double NULL_VALUE = -99999;
 
-    private static int[] MAGNITUDES = new int[MAX_MAGNITUDE - MIN_MAGNITUDE + 1];
+    public static int[] MAGNITUDES = new int[MAX_MAGNITUDE - MIN_MAGNITUDE + 1];
 
     static {
         int j = 0;
@@ -124,40 +127,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
         System.out.println("NetRuntime: " + env.execute().getNetRuntime() + "ms");
     }
 
-    private static class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> {
-
-        /**
-         * @param value Feature as Input
-         * @param out   -> [(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)]
-         */
-        @Override
-        public void flatMap(Feature value, Collector<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> out) {
-            String magType = value.properties.magType;
-            String reviewStatus = value.properties.status;
-            double mag = value.properties.mag;
-
-            for (int minMagnitude : MAGNITUDES) {
-                if (minMagnitude <= mag && mag < minMagnitude + 1) {  // find correct range
-                    magType = magType != null ? magType : UNDEFINED;
-                    out.collect(new Tuple4<>(new Tuple2<>(minMagnitude, minMagnitude + 1), 1, magType, isReviewed(reviewStatus)));
-
-                    if (minMagnitude >= 8) {
-                        System.out.println("Extreme Case:");
-                        System.out.println(value);
-                    }
-                    return;
-                }
-            }
-        }
-
-        /**
-         * @return 1 if review else 0
-         */
-        private int isReviewed(String reviewStatus) {
-            return reviewStatus != null ? reviewStatus.equalsIgnoreCase("reviewed") ? 1 : 0 : 0;
-        }
-    }
-
     private static class GroupCountHistogram implements GroupReduceFunction<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>, Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> {
 
         /**
@@ -177,64 +146,6 @@ public class OtherEarthquakeBatchProjectExercise extends ExerciseBase {
                 histValues.put(value.f0.f0, currentVal);
             });
             histValues.forEach((key, value) -> out.collect(new Tuple3<>(new Tuple2<>(key, key + 1), value.f0, value.f1)));
-        }
-    }
-
-    private static class MagnitudeNotNullFilter implements FilterFunction<Feature> {
-        @Override
-        public boolean filter(Feature value) throws Exception {
-            return value.properties.mag != null;
-        }
-    }
-
-    private static class MagnitudeTypeMap implements FlatMapFunction<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>> {
-
-        /**
-         * @param value -> [(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)] as Input
-         * @param out   -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
-         */
-        @Override
-        public void flatMap(Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer> value, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) throws Exception {
-            out.collect(new Tuple3<>(value.f0, value.f2, 1));
-        }
-    }
-
-    private static class GroupCountMagnitudeType implements GroupReduceFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>> {
-
-        /**
-         * @param values -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
-         * @param out    -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Output
-         */
-        @Override
-        public void reduce(Iterable<Tuple3<Tuple2<Integer, Integer>, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) throws Exception {
-            HashMap<Integer, HashMap<String, Integer>> minMagToTypeToCountMap = new HashMap<>();
-
-            for (int minMagnitude : MAGNITUDES) {
-                HashMap<String, Integer> typeToCount = new HashMap<>();
-                for (MagnitudeType type : MagnitudeType.values()) {
-                    typeToCount.put(type.name(), 0);
-                }
-                minMagToTypeToCountMap.put(minMagnitude, typeToCount);
-            }
-            values.iterator().forEachRemaining(value -> {
-                HashMap<String, Integer> currentValues = minMagToTypeToCountMap.get(value.f0.f0);
-                for (String magTypeName : currentValues.keySet()) {
-                    for (String shortForm : MagnitudeType.valueOf(magTypeName).getShortForms()) {
-                        if (shortForm.equalsIgnoreCase(value.f1)) {
-                            currentValues.merge(magTypeName, 1, Integer::sum);
-                            break;
-                        }
-                    }
-                }
-//                minMagToTypeToCountMap.merge(value.f0.f0, currentValues, (currentValue, newValue) -> {
-//                    currentValue.putAll(newValue);
-//                    return currentValue;
-//                });
-            });
-            minMagToTypeToCountMap
-                    .forEach((minMag, typeToCount) ->
-                            typeToCount.forEach((type, count) ->
-                                    out.collect(new Tuple3<>(new Tuple2<>(minMag, minMag + 1), type, count))));
         }
     }
 
