@@ -35,12 +35,31 @@ public class CollectData {
         }
 
         try {
-            FileUtils.writeStringToFile(output, prettyMapString(mapMinMagToMagAndRev), "UTF-8");
+            FileUtils.writeStringToFile(output, generateCSV(mapMinMagToMagAndRev), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             System.out.println(prettyMapString(mapMinMagToMagAndRev));
         }
+    }
+
+    private static String generateCSV(HashMap<Integer, Tuple2<Integer, Integer>> map) {
+        StringBuilder b = new StringBuilder();
+        Object[] keys = map.keySet().toArray();
+        Arrays.sort(keys);
+        for (Object minMagnitude : keys) {
+            int minMag = (int) minMagnitude;
+            Tuple2<Integer, Integer> sums = map.get(minMag);
+            b.append(minMag)
+                .append(";")
+                .append(minMag + 1)
+                .append(";")
+                .append(sums.f0)
+                .append(";")
+                .append(sums.f1)
+                .append("\n");
+        }
+        return b.toString();
     }
 
     private static void version_1(String line) {
@@ -51,15 +70,7 @@ public class CollectData {
         int magnitudeCount = Integer.parseInt(values[1]);
         int reviewedCount = Integer.parseInt(values[2]);
 
-        Tuple2<Integer, Integer> sumValues = mapMinMagToMagAndRev.get(minMagnitude);
-        if (sumValues == null) {
-            mapMinMagToMagAndRev.put(minMagnitude, new Tuple2<>(magnitudeCount, reviewedCount));
-        } else {
-            sumValues.f0 += magnitudeCount;
-            sumValues.f1 += reviewedCount;
-            mapMinMagToMagAndRev.put(minMagnitude, sumValues);
-//            System.out.println(prettyMapString(mapMinMagToMagAndRev));
-        }
+        mapMinMagToMagAndRev.put(minMagnitude, new Tuple2<>(magnitudeCount, reviewedCount));  // Always override old values because we are only interested in the last values
     }
 
     public static <K, V> String prettyMapString(Map<K, V> map) {
