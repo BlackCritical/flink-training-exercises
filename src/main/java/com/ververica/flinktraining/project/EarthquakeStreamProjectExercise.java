@@ -3,7 +3,9 @@ package com.ververica.flinktraining.project;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
 import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
+import com.ververica.flinktraining.project.magnitude.MagnitudeTypeMap;
 import com.ververica.flinktraining.project.magnitude.stream.WindowCountHistogram;
+import com.ververica.flinktraining.project.magnitude.stream.WindowCountMagnitudeType;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
 import com.ververica.flinktraining.project.model.Geometry;
@@ -43,7 +45,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
-		final String input = params.get("input", ExerciseBase.pathToALLEarthquakeData);
+		final String input = params.get("input", ExerciseBase.pathToMediumEarthquakeData);
 
 //		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 //		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
@@ -79,11 +81,20 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 			.sum(2)
 			.writeAsCsv("./output/stream/magnitude_rev", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
-//		hist
-//			.flatMap(new MagnitudeTypeMap())
-//			.reduceGroup(new GroupCountMagnitudeType())
+		hist
+			.flatMap(new MagnitudeTypeMap())
+			.keyBy("f0.f0", "f0.f1")
+			.countWindow(1000)
+			.process(new WindowCountMagnitudeType())
 //			.sortPartition(value -> value.f0.f0, Order.ASCENDING)
-//			.writeAsFormattedText("./output/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+			.writeAsCsv("./output/stream/magnitude_type", FileSystem.WriteMode.OVERWRITE, "\n", ";");
+
+
+
+
+
+
+
 
 
 //		DataStream<Tuple2<Feature, Integer>> filteredRides = earthquakes

@@ -1,23 +1,25 @@
-package com.ververica.flinktraining.project.magnitude;
+package com.ververica.flinktraining.project.magnitude.stream;
 
 import com.ververica.flinktraining.project.util.MagnitudeType;
-import org.apache.flink.api.common.functions.GroupReduceFunction;
+import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
+import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.util.Collector;
 
 import java.util.HashMap;
 
 import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.MAGNITUDES;
 
-public class GroupCountMagnitudeType implements GroupReduceFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>> {
+public class WindowCountMagnitudeType extends ProcessWindowFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple, GlobalWindow> {
 
     /**
-     * @param values -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count(always 1)] as Input
-     * @param out    -> [(min_Magnitude, max_Magnitude), Magnitude Type, Count] as Output
+     * @param values ->[(min_Magnitude, max_Magnitude), Magnitude Count(always 1), Magnitude Type, Reviewed Status Count (1 if reviewed else 0)] as Input
+     * @param out    -> [(min_Magnitude, max_Magnitude), Magnitude Count, Review Status]
      */
     @Override
-    public void reduce(Iterable<Tuple3<Tuple2<Integer, Integer>, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) throws Exception {
+    public void process(Tuple tuple, Context context, Iterable<Tuple3<Tuple2<Integer, Integer>, String, Integer>> values, Collector<Tuple3<Tuple2<Integer, Integer>, String, Integer>> out) {
         HashMap<Integer, HashMap<String, Integer>> minMagToTypeToCountMap = new HashMap<>();
 
         for (int minMagnitude : MAGNITUDES) {

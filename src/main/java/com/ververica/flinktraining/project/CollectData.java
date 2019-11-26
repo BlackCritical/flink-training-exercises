@@ -17,12 +17,11 @@ public class CollectData {
     private static HashMap<Integer, Tuple2<Integer, Integer>> mapMinMagToMagAndRev = new HashMap<>();
 
     public static void main(String[] args) {
-        String basePath = "C:/Users/leander.nachtmann/IdeaProjects/flink-training-leander/output/stream/magnitude_mag/";
+        String basePath = "C:/Users/leander.nachtmann/IdeaProjects/flink-training-leander/output/stream/magnitude_rev/";
         File output = new File(basePath + "output.csv");
 
         for (String fileName : Arrays.asList("1", "2", "3", "4")) {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(basePath + fileName), StandardCharsets.UTF_8))) {
-                br.readLine(); // Skip Headline
                 String line = br.readLine();
 
                 while (line != null && !line.equals("")) {
