@@ -45,7 +45,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
-		final String input = params.get("input", ExerciseBase.pathToMediumEarthquakeData);
+		final String input = params.get("input", ExerciseBase.pathToALLEarthquakeData);
 
 //		final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 //		final int maxEventDelay = 60;       // events are out of order by max 60 seconds
