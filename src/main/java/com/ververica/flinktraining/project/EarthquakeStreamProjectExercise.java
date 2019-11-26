@@ -15,7 +15,6 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
-import org.apache.flink.api.java.operators.FlatMapOperator;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -37,6 +36,10 @@ import static com.ververica.flinktraining.project.TransformEarthquakeJSON.readEa
  * -input path-to-input-file
  */
 public class EarthquakeStreamProjectExercise extends ExerciseBase {
+    
+    private static final int WINDOW_SIZE = 10;
+    private static final String FIRST_COORDINATE = "f0.f0";
+    private static final String SECOND_COORDINATE = "f0.f1";
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
@@ -57,10 +60,10 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
                 .flatMap(new MagnitudeHistogram());
 
         KeyedStream<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>, Tuple> processedHist = hist
-                .keyBy("f0.f0", "f0.f1")
-                .countWindow(1000)
+                .keyBy(FIRST_COORDINATE, SECOND_COORDINATE)
+                .countWindow(WINDOW_SIZE)
                 .process(new WindowCountHistogram())
-                .keyBy("f0.f0", "f0.f1");
+                .keyBy(FIRST_COORDINATE, SECOND_COORDINATE);
 
         DataStreamSink<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> mag = processedHist
                 .sum(1)
@@ -72,26 +75,26 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
         hist
                 .flatMap(new MagnitudeTypeMap())
-                .keyBy("f0.f0", "f0.f1")
-                .countWindow(1000)
+                .keyBy(FIRST_COORDINATE, SECOND_COORDINATE)
+                .countWindow(WINDOW_SIZE)
                 .process(new WindowCountMagnitudeType())
                 .writeAsCsv("./output/stream/magnitude_type", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
 
-		FlatMapOperator<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> events = earthquakes
-				.flatMap(new MapEventsToLocationCoordinates())
-				.flatMap(new MapEventsToLocation())
-				.name("Country Name, SIG, Tsunami");
+        SingleOutputStreamOperator<Tuple3<String, Long, Long>> events = earthquakes
+                .flatMap(new MapEventsToLocationCoordinates())
+                .flatMap(new MapEventsToLocation())
+                .name("Country Name, SIG, Tsunami");
 
-		events
-				.groupBy(0)
+        events
+				.keyBy(0)
 				.max(1)
-				.writeAsFormattedText("./output/batch/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%d", value.f0, value.f1));
+                .writeAsCsv("./output/stream/max-sig-location-csv", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
 		events
-				.groupBy(0)
+				.keyBy(0)
 				.sum(2)
-				.writeAsFormattedText("./output/batch/max-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
+                .writeAsCsv("./output/stream/sum-Tsunami-location-csv", FileSystem.WriteMode.OVERWRITE, "\n", ";");
 
 
 		// print the filtered stream

@@ -14,22 +14,27 @@ import java.util.Map;
 @SuppressWarnings("Duplicates")
 public class CollectData {
 
-    // map MinMag To MagnitudeCount And ReviewedCount
+    // map MinMagnitude To MagnitudeCount And ReviewedCount
     private static HashMap<Integer, Tuple2<Integer, Integer>> mapMinMagToMagAndRev = new HashMap<>();
-    private static HashMap<String, Tuple3<Integer, String, Integer>> mapMinMagToTypeAndMag = new HashMap<>();
+
+    // map concat(MinMagnitude,MagnitudeType) To minMag, MagnitudeType and MagnitudeCount
+    private static HashMap<String, Tuple3<Integer, String, Integer>> mapMinMagTypeToTypeAndMag = new HashMap<>();
+
+    // map Country Name To MaxSIG and MaxTsunami
+    private static HashMap<String, Tuple2<Integer, Integer>> mapCountryToSIGAndTsunami = new HashMap<>();
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) {
-        String basePath = "C:/Users/lvlup/IdeaProjects/flink-training-exercises/output/stream/magnitude_type/";
+        String basePath = "./output/stream/magnitude_rev/";
         File output = new File(basePath + "output.csv");
-        HashMap chosenMap = mapMinMagToTypeAndMag;
+        HashMap chosenMap = mapMinMagToMagAndRev;
 
         for (String fileName : Arrays.asList("1", "2", "3", "4")) {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(basePath + fileName), StandardCharsets.UTF_8))) {
                 String line = br.readLine();
 
                 while (line != null && !line.equals("")) {
-                    version_2(line);
+                    version_1(line);
                     line = br.readLine();
                 }
             } catch (IOException e) {
@@ -38,7 +43,7 @@ public class CollectData {
         }
 
         try {
-            FileUtils.writeStringToFile(output, generateCSV_2(chosenMap), "UTF-8");
+            FileUtils.writeStringToFile(output, generateCSV_1(), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -46,18 +51,16 @@ public class CollectData {
         }
     }
 
-    private static String generateCSV(HashMap<Integer, Tuple2<Integer, Integer>> map) {
+    private static String generateCSV_1() {
         StringBuilder b = new StringBuilder();
-        Object[] keys = map.keySet().toArray();
+        Object[] keys = mapMinMagToMagAndRev.keySet().toArray();
         Arrays.sort(keys);
         for (Object minMagnitude : keys) {
             int minMag = (int) minMagnitude;
-            Tuple2<Integer, Integer> sums = map.get(minMag);
+            Tuple2<Integer, Integer> sums = mapMinMagToMagAndRev.get(minMag);
             b.append(minMag)
                     .append(";")
                     .append(minMag + 1)
-                    .append(";")
-                    .append(sums.f0)
                     .append(";")
                     .append(sums.f1)
                     .append("\n");
@@ -65,12 +68,12 @@ public class CollectData {
         return b.toString();
     }
 
-    private static <T> String generateCSV_2(HashMap<String, Tuple3<Integer, String, Integer>> map) {
+    private static String generateCSV_2() {
         StringBuilder b = new StringBuilder();
-        Object[] keys = map.keySet().toArray();
+        Object[] keys = mapMinMagTypeToTypeAndMag.keySet().toArray();
         Arrays.sort(keys);
-        for (Object minMagnitude : keys) {
-            Tuple3<Integer, String, Integer> sums = map.get(minMagnitude);
+        for (Object minMagnitudeAndMagType : keys) {
+            Tuple3<Integer, String, Integer> sums = mapMinMagTypeToTypeAndMag.get(minMagnitudeAndMagType);
             int minMag = sums.f0;
             b.append(minMag)
                     .append(";")
@@ -79,6 +82,23 @@ public class CollectData {
                     .append(sums.f1)
                     .append(";")
                     .append(sums.f2)
+                    .append("\n");
+        }
+        return b.toString();
+    }
+
+    private static String generateCSV_3() {
+        StringBuilder b = new StringBuilder();
+        Object[] keys = mapCountryToSIGAndTsunami.keySet().toArray();
+        Arrays.sort(keys);
+        for (Object countryKey : keys) {
+            String country = (String) countryKey;
+            Tuple2<Integer, Integer> sums = mapCountryToSIGAndTsunami.get(country);
+            b.append(country)
+                    .append(";")
+                    .append(country)
+                    .append(";")
+                    .append(sums.f0)
                     .append("\n");
         }
         return b.toString();
@@ -103,7 +123,17 @@ public class CollectData {
         String magnitudeType = values[1];
         int magnitudeCount = Integer.parseInt(values[2]);
 
-        mapMinMagToTypeAndMag.put(minMagnitude + magnitudeType, new Tuple3<>(minMagnitude, magnitudeType, magnitudeCount));  // Always override old values because we are only interested in the last values
+        mapMinMagTypeToTypeAndMag.put(minMagnitude + magnitudeType, new Tuple3<>(minMagnitude, magnitudeType, magnitudeCount));  // Always override old values because we are only interested in the last values
+    }
+
+    private static void version_3(String line) {
+        String[] values = line.split(";");
+
+        String countryName = values[0];
+        int maxSig = Integer.parseInt(values[1]);
+        int tsunamiSum = Integer.parseInt(values[2]);
+
+        mapCountryToSIGAndTsunami.put(countryName, new Tuple2<>(maxSig, tsunamiSum));  // Always override old values because we are only interested in the last values
     }
 
     public static <K, V> String prettyMapString(Map<K, V> map) {
