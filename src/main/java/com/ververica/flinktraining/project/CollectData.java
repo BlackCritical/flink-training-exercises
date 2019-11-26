@@ -23,18 +23,46 @@ public class CollectData {
     // map Country Name To MaxSIG and MaxTsunami
     private static HashMap<String, Tuple2<Integer, Integer>> mapCountryToSIGAndTsunami = new HashMap<>();
 
-    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
-        String basePath = "./output/stream/magnitude_rev/";
+        String basePath = "./output/stream/magnitude_mag/";
         File output = new File(basePath + "output.csv");
-        HashMap chosenMap = mapMinMagToMagAndRev;
 
+        run(basePath, output, mapMinMagToMagAndRev, 0);
+
+        basePath = "./output/stream/magnitude_rev/";
+        output = new File(basePath + "output.csv");
+
+        run(basePath, output, mapMinMagToMagAndRev, 1);
+
+        basePath = "./output/stream/magnitude_type/";
+        output = new File(basePath + "output.csv");
+
+        run(basePath, output, mapMinMagTypeToTypeAndMag, 2);
+
+        basePath = "./output/stream/max-sig-location/";
+        output = new File(basePath + "output.csv");
+
+        run(basePath, output, mapCountryToSIGAndTsunami, 3);
+
+        basePath = "./output/stream/sum-Tsunami-location/";
+        output = new File(basePath + "output.csv");
+
+        run(basePath, output, mapCountryToSIGAndTsunami, 4);
+    }
+
+    private static void run(String basePath, File output, HashMap map, int index) {
         for (String fileName : Arrays.asList("1", "2", "3", "4")) {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(basePath + fileName), StandardCharsets.UTF_8))) {
                 String line = br.readLine();
 
                 while (line != null && !line.equals("")) {
-                    version_1(line);
+                    if (index == 0 || index == 1) {
+                        version_1(line);
+                    } else if (index == 2) {
+                        version_2(line);
+                    } else if (index > 2) {
+                        version_3(line);
+                    }
                     line = br.readLine();
                 }
             } catch (IOException e) {
@@ -43,15 +71,26 @@ public class CollectData {
         }
 
         try {
-            FileUtils.writeStringToFile(output, generateCSV_1(), "UTF-8");
+
+            if (index == 0) {
+                FileUtils.writeStringToFile(output, generateCSV_1("first"), "UTF-8");
+            }else if (index == 1){
+                FileUtils.writeStringToFile(output, generateCSV_1("second"), "UTF-8");
+            } else if (index == 2) {
+                FileUtils.writeStringToFile(output, generateCSV_2(), "UTF-8");
+            } else if (index == 3) {
+                FileUtils.writeStringToFile(output, generateCSV_3("first"), "UTF-8");
+            } else if (index == 4) {
+                FileUtils.writeStringToFile(output, generateCSV_3("second"), "UTF-8");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            System.out.println(prettyMapString(chosenMap));
+            System.out.println(prettyMapString(map));
         }
     }
 
-    private static String generateCSV_1() {
+    private static String generateCSV_1(String first) {
         StringBuilder b = new StringBuilder();
         Object[] keys = mapMinMagToMagAndRev.keySet().toArray();
         Arrays.sort(keys);
@@ -61,9 +100,10 @@ public class CollectData {
             b.append(minMag)
                     .append(";")
                     .append(minMag + 1)
-                    .append(";")
-                    .append(sums.f1)
-                    .append("\n");
+                    .append(";");
+
+            b.append(first.equals("first") ? sums.f0 : sums.f1);
+            b.append("\n");
         }
         return b.toString();
     }
@@ -87,7 +127,7 @@ public class CollectData {
         return b.toString();
     }
 
-    private static String generateCSV_3() {
+    private static String generateCSV_3(String first) {
         StringBuilder b = new StringBuilder();
         Object[] keys = mapCountryToSIGAndTsunami.keySet().toArray();
         Arrays.sort(keys);
@@ -95,11 +135,10 @@ public class CollectData {
             String country = (String) countryKey;
             Tuple2<Integer, Integer> sums = mapCountryToSIGAndTsunami.get(country);
             b.append(country)
-                    .append(";")
-                    .append(country)
-                    .append(";")
-                    .append(sums.f0)
-                    .append("\n");
+                    .append(";");
+
+            b.append(first.equals("first") ? sums.f0 : sums.f1);
+            b.append("\n");
         }
         return b.toString();
     }
