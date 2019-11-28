@@ -13,6 +13,8 @@ import java.util.Map;
 
 import static org.apache.flink.api.common.typeinfo.BasicTypeInfo.INT_TYPE_INFO;
 
+
+// Unused
 public class CollectValuesSink extends RichSinkFunction<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> {
 
     // map MinMag To MagnitudeCount And ReviewedCount

@@ -23,6 +23,11 @@ public class CollectData {
     // map Country Name To MaxSIG and MaxTsunami
     private static HashMap<String, Tuple2<Integer, Integer>> mapCountryToSIGAndTsunami = new HashMap<>();
 
+
+    /**
+     * Use this Mainclass to combine the different results from every node used for stream processing inside:
+     * com.ververica.flinktraining.project.EarthquakeStreamProjectExercise
+     */
     public static void main(String[] args) {
         String basePath = "./output/stream/magnitude_mag/";
         File output = new File(basePath + "output.csv");

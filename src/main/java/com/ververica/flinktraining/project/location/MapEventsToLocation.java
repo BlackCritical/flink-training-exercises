@@ -14,14 +14,18 @@ import static com.ververica.flinktraining.exercises.datastream_java.utils.Exerci
 
 public class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> {
 
+    // The Location list will be read out of a small CSV File by every flink node once.
     private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
 
     public MapEventsToLocation() throws IOException {
     }
 
     /**
-     * @param value     -> [latitude, longitude, SIG, tsunami(true/false)]
-     * @param collector     -> [countryName, SIG, tsunami(true/false)]
+     * Map the longitude and latitude to the country with the
+     * smallest euclidean distance to the given latitude and longitude.
+     *
+     * @param value     -> [latitude, longitude, SIG, tsunami(1/0)]
+     * @param collector     -> [countryName, SIG, tsunami(1/0)]
      */
     @Override
     public void flatMap(Tuple4<Double, Double, Long, Long> value, Collector<Tuple3<String, Long, Long>> collector) {
@@ -33,7 +37,7 @@ public class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Doubl
         double minDistance = Double.MAX_VALUE;
         String minName = "";
         for (Location location : locations) {
-            double distance = euklidDistance(latitude, longitude, location.latitude, location.longitude);
+            double distance = euclideanDistance(latitude, longitude, location.latitude, location.longitude);
             if (distance < minDistance) {
                 minDistance = distance;
                 minName = location.name;
@@ -42,7 +46,7 @@ public class MapEventsToLocation implements FlatMapFunction<Tuple4<Double, Doubl
         return minName;
     }
 
-    private static double euklidDistance(double p1x, double p1y, double p2x, double p2y) {
+    private static double euclideanDistance(double p1x, double p1y, double p2x, double p2y) {
         return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));
     }
 }

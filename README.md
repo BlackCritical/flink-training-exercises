@@ -1,7 +1,11 @@
 #Big Data Project
 
-This repository is a fork of the flink-training-exercise (link).
-A few dependencies were added.
+This repository is a fork of the flink-training-exercise (https://github.com/ververica/flink-training-exercises).
+A few dependencies were added.  
+One of them is org.projectlombok.  
+**IF YOU USE AN IDE LIKE INTELLIJ YOU WILL PROBABLY NEED THE LOMBOK PLUGIN.**
+**OTHERWISE YOU WILL SEE A LOT OF ERRORS IN THE com.ververica.flinktraining.project.model PACKAGE.**
+**BUT THOSE ERRORS SHOULD NOT PREVENT YOU FROM COMPILING THE PROJECT!**
 
 ##1. and 2. Data Collection:
 Inside com.ververica.flinktraining.data_collection is a main class called BigDataReaderApplication, which starts a REST-SpringBoot-Application.

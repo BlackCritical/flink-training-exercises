@@ -19,7 +19,6 @@ public class TransformEarthquakeJSON {
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
         final String input = params.get("input", ExerciseBase.pathToALLEarthquakeData);
-        final String inputCSV_USA = params.get("inputCSV_USA", ExerciseBase.pathToLocationsUSA);
         final String inputCSV = params.get("inputCSV", ExerciseBase.pathToLocations);
 
         EarthquakeCollection earthquake = readEarthquakeFromJSON(input);

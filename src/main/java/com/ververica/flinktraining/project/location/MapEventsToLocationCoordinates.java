@@ -11,7 +11,7 @@ public class MapEventsToLocationCoordinates implements FlatMapFunction<Feature, 
 
     /**
      * @param feature       -> Earthquake Feature
-     * @param collector     -> [latitude, longitude, SIG, tsunami(true/false)]
+     * @param collector     -> [latitude, longitude, SIG, tsunami(1/0)]
      */
     @Override
     public void flatMap(Feature feature, Collector<Tuple4<Double, Double, Long, Long>> collector) {
