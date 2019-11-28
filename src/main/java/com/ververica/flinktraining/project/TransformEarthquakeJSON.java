@@ -36,18 +36,25 @@ public class TransformEarthquakeJSON {
         featurePropertyNullCount(earthquake);
     }
 
+    /**
+     * Can be used to see how many features contain a certain property.
+     * If there are a lot of null values (like for example for the property "alert")
+     * it is not suitable for this project to be analyzed.
+     */
     private static void featurePropertyNullCount(EarthquakeCollection earthquake) {
         int count = 0;
         for (Feature feature : earthquake.features) {
             Long magType = feature.properties.tsunami;
             if (magType == null) {
                 count++;
-            } else if (magType > 1)
-                count++;
+            }
         }
         System.out.println("count: " + count);
     }
 
+    /**
+     * Look through the DataSet to find and remove duplicated entries
+     */
     private static void findAndRemoveDuplicates(EarthquakeCollection earthquake) {
         LinkedList<String> dupIds = new LinkedList<>();
         LinkedList<Integer> dupIndexs = new LinkedList<>();
@@ -71,6 +78,9 @@ public class TransformEarthquakeJSON {
         writeToFile(earthquake, "earthquakeALL-2014-2019CLEAN.json");
     }
 
+    /**
+     * Merge different earthquake.json files
+     */
     private static void mergeSources(EarthquakeCollection earthquake) throws IOException {
         final String input2 = ExerciseBase.pathToNewData;
         EarthquakeCollection newData = readEarthquakeFromJSON(input2);
@@ -91,6 +101,10 @@ public class TransformEarthquakeJSON {
         writeToFile(earthquake, "earthquake2014-2019.json");
     }
 
+    /**
+     * Print the first and last date in a DataSet to check in which time range this DataSet
+     * was generated.
+     */
     private static void printTimeRange(EarthquakeCollection earthquake) {
         System.out.println("Begin:");
         System.out.println(new Date(earthquake.features.get(0).properties.time));
@@ -98,11 +112,17 @@ public class TransformEarthquakeJSON {
         System.out.println(new Date(earthquake.features.get(earthquake.features.size() - 1).properties.time));
     }
 
+    /**
+     * Create smaller DataSets for faster testing
+     */
     private static void writeSubList(EarthquakeCollection earthquake) {
         earthquake.features = earthquake.features.subList(0, 100000);
         writeToFile(earthquake, "earthquake-medium.json");
     }
 
+    /**
+     * Write Java Object to JSON
+     */
     private static void writeToFile(EarthquakeCollection earthquake, String fileName) {
         try (PrintWriter out = new PrintWriter(fileName)) {
             out.println(GSON.toJson(earthquake));
@@ -118,6 +138,11 @@ public class TransformEarthquakeJSON {
         return GSON.fromJson(reader, EarthquakeCollection.class);
     }
 
+    /**
+     * Reads a list of countries with their longitude and latitude
+     * from a CSV File into an ArrayList for mapping coordinates to countries inside the:
+     * com.ververica.flinktraining.project.location.MapEventsToLocation
+     */
     public static List<Location> readLocationsFromCSV(String inputCSV) throws IOException {
         System.out.println("READ!");
         ArrayList<Location> locations = new ArrayList<>();

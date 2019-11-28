@@ -1,5 +1,27 @@
-This repository contains examples as well as reference solutions and utility classes for the Apache Flink Training exercises 
-found on [http://training.ververica.com](http://training.ververica.com).
+This repository is a fork of the flink-training-exercise (link).
+A few dependencies were added.
+
+1. and 2. Data Collection:
+Inside com.ververica.flinktraining.data_collection is a main class called BigDataReaderApplication, which starts a REST-SpringBoot-Application.
+This REST-Server contains only one Endpoint: http://localhost:8080/start .
+By Calling the Endpoint a async call to https://earthquake.usgs.gov/fdsnws/event/1/query 
+with the QueryParameters:
+
+format=geojson, 
+starttime=XXXX-XX-XX, 
+endtime=XXXX-XX-XX
+
+will be made, for every day from 2014-01-01 to 2019-12-31.
+The first call, whit a starttime higher than the current date, will cause an exception, 
+but that is okay, because the responses of all calls prior to this, will be written to a file called earthquake.json.
+The DataSet from 2014-01-01 to 2019-11-05 contained 813445 Features (com.ververica.flinktraining.project.model.Feature).
+This DataSet will be used for offline and online analysis. 
+Inside com/ververica/flinktraining/exercises/datastream_java/utils/ExerciseBase is a constant called pathToALLEarthquakeData which contains the path to the archive.
+Inside com.ververica.flinktraining.project.TransformEarthquakeJSON are a few helper functions i used through out the project to look into or modify the DataSet.
+See the doc comments on those functions for more information!
+
+3. The stream (online) metric computation:
+
 
 Chosen Metrics:
 
