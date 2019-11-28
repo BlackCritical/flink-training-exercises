@@ -16,14 +16,10 @@
 
 package com.ververica.flinktraining.exercises.datastream_java.utils;
 
-import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiFare;
-import com.ververica.flinktraining.exercises.datastream_java.datatypes.TaxiRide;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 public class ExerciseBase {
-	public static SourceFunction<TaxiRide> rides = null;
-	public static SourceFunction<TaxiFare> fares = null;
 	public static SourceFunction<String> strings = null;
 	public static SinkFunction out = null;
 	public static int parallelism = 4;
@@ -39,20 +35,6 @@ public class ExerciseBase {
 	public final static String pathToLocations = "./trainingData/Countries.csv.gz";
 	public final static String pathToRideData = "./trainingData/nycTaxiRides.gz";
 	public final static String pathToFareData = "./trainingData/nycTaxiFares.gz";
-
-	public static SourceFunction<TaxiRide> rideSourceOrTest(SourceFunction<TaxiRide> source) {
-		if (rides == null) {
-			return source;
-		}
-		return rides;
-	}
-
-	public static SourceFunction<TaxiFare> fareSourceOrTest(SourceFunction<TaxiFare> source) {
-		if (fares == null) {
-			return source;
-		}
-		return fares;
-	}
 
 	public static SourceFunction<String> stringSourceOrTest(SourceFunction<String> source) {
 		if (strings == null) {

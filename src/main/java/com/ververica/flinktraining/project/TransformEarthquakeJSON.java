@@ -1,5 +1,6 @@
 package com.ververica.flinktraining.project;
 
+import com.google.gson.Gson;
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
 import com.ververica.flinktraining.project.model.Feature;
@@ -11,10 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
-import static com.ververica.flinktraining.exercises.datastream_java.sources.EarthquakeSource.GSON;
-
-
 public class TransformEarthquakeJSON {
+
+    private static final Gson GSON = new Gson();
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
