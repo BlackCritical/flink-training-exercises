@@ -10,7 +10,7 @@ import org.apache.flink.util.Collector;
 
 import java.util.HashMap;
 
-import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.MAGNITUDES;
+import static com.ververica.flinktraining.project.EarthquakeBatchProjectExercise.MAGNITUDES;
 
 public class WindowCountMagnitudeType extends ProcessWindowFunction<Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple3<Tuple2<Integer, Integer>, String, Integer>, Tuple, GlobalWindow> {
 

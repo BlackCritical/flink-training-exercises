@@ -6,8 +6,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.util.Collector;
 
-import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.MAGNITUDES;
-import static com.ververica.flinktraining.project.OtherEarthquakeBatchProjectExercise.UNDEFINED;
+import static com.ververica.flinktraining.project.EarthquakeBatchProjectExercise.MAGNITUDES;
+import static com.ververica.flinktraining.project.EarthquakeBatchProjectExercise.UNDEFINED;
 
 public class MagnitudeHistogram implements FlatMapFunction<Feature, Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> {
 
