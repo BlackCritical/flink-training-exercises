@@ -8,8 +8,10 @@ One of them is org.projectlombok.
 **BUT THOSE ERRORS SHOULD NOT PREVENT YOU FROM COMPILING THE PROJECT!**
 
 ##1. and 2. Data Collection:
-Inside com.ververica.flinktraining.data_collection is a main class called BigDataReaderApplication, which starts a REST-SpringBoot-Application.
-This REST-Server contains only one Endpoint: http://localhost:8080/start .
+Inside the ./bigdatareader project is a main class called com.example.bigdatareader.BigDataReaderApplication, which starts a REST-Spring-Boot-Application.
+This Project is a Gradle Project which can be build by executing "gradle build" or "gradlew build" inside a shell opened in ./bigdatareader.
+
+This REST-Server contains only one Endpoint: http://localhost:8099/start .
 By Calling the Endpoint a async call to https://earthquake.usgs.gov/fdsnws/event/1/query 
 with the QueryParameters:
 
