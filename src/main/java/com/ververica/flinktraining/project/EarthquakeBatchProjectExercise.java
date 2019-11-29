@@ -71,17 +71,17 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         hist
                 .reduceGroup(new GroupCountHistogram())
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
-                .writeAsFormattedText("./output/batch/magnitude-review-status.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+                .writeAsFormattedText("./output/batch/magnitude-review-status.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%d;%d", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
         // discard f3 -> the reviewed frequency from the input
         // Add up the magnitude frequencies per combination of range and type
-        // We will end up with an CSV, which contains every MagnitudeRange 16 times once per Magnitude Type (you can find all at com.ververica.flinktraining.project.util.MagnitudeType).
+        // We will end up with an CSV, which contains every MagnitudeRange 11 times once per Magnitude Type (you can find all at com.ververica.flinktraining.project.util.MagnitudeType).
         // For every Range and Type combination: the frequency of earthquakes within this magnitude range and for this specific Magnitude Type, will be computed
         hist
                 .flatMap(new MagnitudeTypeMap())
                 .reduceGroup(new GroupCountMagnitudeType())
                 .sortPartition(value -> value.f0.f0, Order.ASCENDING)
-                .writeAsFormattedText("./output/batch/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d;", value.f0.f0, value.f0.f1, value.f1, value.f2));
+                .writeAsFormattedText("./output/batch/magnitudeType.csv", FileSystem.WriteMode.OVERWRITE, value -> String.format("%d;%d;%s;%d", value.f0.f0, value.f0.f1, value.f1, value.f2));
 
 
         FlatMapOperator<Tuple4<Double, Double, Long, Long>, Tuple3<String, Long, Long>> events = earthquakes
@@ -107,7 +107,7 @@ public class EarthquakeBatchProjectExercise extends ExerciseBase {
         events
                 .groupBy(0)
                 .sum(2)
-                .writeAsFormattedText("./output/batch/max-Tsunami-location", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s;", value.f0, value.f2));
+                .writeAsFormattedText("./output/batch/max-Tsunami-location", FileSystem.WriteMode.OVERWRITE, value -> String.format("%s;%s", value.f0, value.f2));
 
         System.out.println("NetRuntime: " + env.execute().getNetRuntime() + "ms");
     }

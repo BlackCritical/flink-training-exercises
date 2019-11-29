@@ -90,8 +90,8 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
         // discard f3 -> the reviewed frequency from the input
         // Add up the magnitude frequencies per combination of range and type for every window
-        // We will end up with an CSV for every node, 
-        // which contains every MagnitudeRange 16 times once per Magnitude Type (you can find all at com.ververica.flinktraining.project.util.MagnitudeType) and once per window.
+        // We will end up with an CSV for every node,
+        // which contains every MagnitudeRange 11 times once per Magnitude Type (you can find all at com.ververica.flinktraining.project.util.MagnitudeType) and once per window.
         // For every Range and Type combination: the frequency of earthquakes within this magnitude range and for this specific Magnitude Type, will be computed
         // BUT all partial results will also be contained inside the result CSV (one for every window)
         // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectData
