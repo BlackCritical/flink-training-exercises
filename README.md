@@ -46,10 +46,14 @@ Which metrics are computed can be read under "Chosen Metrics"!
 
 
 ##5. Compare the online statistics with the offline computed statistics
-Not done yet
+The visualizations are comparing online with offline statistics. 
+But since both analyze the same dataset, they are almost exactly the same.
+The only minor differences are due to the fact that the streaming window size is 100, but the dataset size is 813445.
+That means, that 45 (813445 % 100 = 45) features are not processed, because they are drop after the stream completes/terminates.
 
 ##6. Study options for making predictions about 3 statistics
-Not done yet
+I never wrote a single Machine Learning Algorithm in my life or had anything to do with this topic so far.
+I did not succeed in integrating an ML Algo into this application.
 
 ##7. Create a visualization and prepare the demo
-Inside the visualization folder are a few excel sheets as visualization.
+Inside the visualization folder are 3 excel sheets as visualization.
