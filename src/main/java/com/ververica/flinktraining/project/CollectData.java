@@ -79,7 +79,7 @@ public class CollectData {
 
             if (index == 0) {
                 FileUtils.writeStringToFile(output, generateCSV_1("first"), "UTF-8");
-            }else if (index == 1){
+            } else if (index == 1) {
                 FileUtils.writeStringToFile(output, generateCSV_1("second"), "UTF-8");
             } else if (index == 2) {
                 FileUtils.writeStringToFile(output, generateCSV_2(), "UTF-8");
@@ -103,9 +103,9 @@ public class CollectData {
             int minMag = (int) minMagnitude;
             Tuple2<Integer, Integer> sums = mapMinMagToMagAndRev.get(minMag);
             b.append(minMag)
-                    .append(";")
-                    .append(minMag + 1)
-                    .append(";");
+                .append(";")
+                .append(minMag + 1)
+                .append(";");
 
             b.append(first.equals("first") ? sums.f0 : sums.f1);
             b.append("\n");
@@ -121,13 +121,13 @@ public class CollectData {
             Tuple3<Integer, String, Integer> sums = mapMinMagTypeToTypeAndMag.get(minMagnitudeAndMagType);
             int minMag = sums.f0;
             b.append(minMag)
-                    .append(";")
-                    .append(minMag + 1)
-                    .append(";")
-                    .append(sums.f1)
-                    .append(";")
-                    .append(sums.f2)
-                    .append("\n");
+                .append(";")
+                .append(minMag + 1)
+                .append(";")
+                .append(sums.f1)
+                .append(";")
+                .append(sums.f2)
+                .append("\n");
         }
         return b.toString();
     }
@@ -140,7 +140,7 @@ public class CollectData {
             String country = (String) countryKey;
             Tuple2<Integer, Integer> sums = mapCountryToSIGAndTsunami.get(country);
             b.append(country)
-                    .append(";");
+                .append(";");
 
             b.append(first.equals("first") ? sums.f0 : sums.f1);
             b.append("\n");
@@ -167,7 +167,12 @@ public class CollectData {
         String magnitudeType = values[1];
         int magnitudeCount = Integer.parseInt(values[2]);
 
-        mapMinMagTypeToTypeAndMag.put(minMagnitude + magnitudeType, new Tuple3<>(minMagnitude, magnitudeType, magnitudeCount));  // Always override old values because we are only interested in the last values
+        Tuple3<Integer, String, Integer> tuple3 = mapMinMagTypeToTypeAndMag.get(minMagnitude + magnitudeType);
+
+        if (tuple3 != null) {
+            magnitudeCount = tuple3.f2 > magnitudeCount ? tuple3.f2 : magnitudeCount;  // Always override old values because we are only interested in the last values
+        }
+        mapMinMagTypeToTypeAndMag.put(minMagnitude + magnitudeType, new Tuple3<>(minMagnitude, magnitudeType, magnitudeCount));
     }
 
     private static void version_3(String line) {
