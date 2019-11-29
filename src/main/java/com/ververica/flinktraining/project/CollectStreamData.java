@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 @SuppressWarnings("Duplicates")
-public class CollectData {
+public class CollectStreamData {
 
     // map MinMagnitude To MagnitudeCount And ReviewedCount
     private static HashMap<Integer, Tuple2<Integer, Integer>> mapMinMagToMagAndRev = new HashMap<>();

@@ -71,7 +71,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         // We will end up with an CSV for every node used
         // For every Range: the frequency of earthquakes within this magnitude range, will be computed
         // BUT all partial results will also be contained inside the result CSV
-        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectData
+        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectStreamData
         // Afterwards we will find a output.csv inside ./output/stream/magnitude_mag
         DataStreamSink<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> mag = processedHist
                 .sum(1)
@@ -82,7 +82,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         // We will end up with an CSV for every node used
         // For every Range: the frequency of earthquakes within this magnitude range which got reviewed by a human, will be computed
         // BUT all partial results will also be contained inside the result CSV (one for every window)
-        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectData
+        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectStreamData
         // Afterwards we will find a output.csv inside ./output/stream/magnitude_rev
         DataStreamSink<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>> reviewed = processedHist
                 .sum(2)
@@ -94,7 +94,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         // which contains every MagnitudeRange 11 times once per Magnitude Type (you can find all at com.ververica.flinktraining.project.util.MagnitudeType) and once per window.
         // For every Range and Type combination: the frequency of earthquakes within this magnitude range and for this specific Magnitude Type, will be computed
         // BUT all partial results will also be contained inside the result CSV (one for every window)
-        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectData
+        // To create one single CSV File with no duplicated ranges we will need to execute com.ververica.flinktraining.project.CollectStreamData
         // Afterwards we will find a output.csv inside ./output/stream/magnitude_type
         hist
                 .flatMap(new MagnitudeTypeMap())
