@@ -48,7 +48,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
         String country = getCountry(value.f0, value.f1);
         count.update(count.value() != null ? count.value() + 1 : 1);
         System.out.println(String.format("Actual value #%d: %s", count.value(), country));
-        machineLearningPrediction(country);
+        machineLearningPrediction3(country);
         collector.collect(new Tuple3<>(country, value.f2, value.f3));
     }
 
@@ -65,7 +65,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
         return minName;
     }
 
-    private void machineLearningPrediction(String country) throws Exception {
+    private void machineLearningPrediction3(String country) throws Exception {
         Integer sum = mapCountryToCount.get(country);
         if (sum == null) {
             mapCountryToCount.put(country, 1);

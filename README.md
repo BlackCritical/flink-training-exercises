@@ -16,7 +16,7 @@ By Calling the Endpoint a async call to https://earthquake.usgs.gov/fdsnws/event
 with the QueryParameters:
 
 - format=geojson, 
-- starttime=XXXX-XX-XX, 
+- starttime=XXXX-XX-XX,
 - endtime=XXXX-XX-XX
 
 will be made, for every day from 2014-01-01 to 2019-12-31.  

@@ -54,7 +54,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         // f3 -> the frequency of reviewed earthquakes for the range given inside the Tuple2 (at this point still always 1 or 0)
         SingleOutputStreamOperator<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> hist = earthquakes
                 .filter(new MagnitudeNotNullFilter())
-                .keyBy("properties.status")
+                .keyBy("properties.tsunami")  // make ML predictions about countries with and without Tsunami's
                 .flatMap(new MLMagnitudeHistogram());
 
 
