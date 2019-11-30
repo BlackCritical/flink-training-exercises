@@ -33,8 +33,6 @@ public class ExerciseBase {
 	public final static String pathToALLEarthquakeData = "./trainingData/earthquakeALL-2014-2019.json.gz";  // 813445 Features
 	public final static String pathToLocationsUSA = "./trainingData/LongLatUSA.csv.gz";
 	public final static String pathToLocations = "./trainingData/Countries.csv.gz";
-	public final static String pathToRideData = "./trainingData/nycTaxiRides.gz";
-	public final static String pathToFareData = "./trainingData/nycTaxiFares.gz";
 
 	public static SourceFunction<String> stringSourceOrTest(SourceFunction<String> source) {
 		if (strings == null) {
