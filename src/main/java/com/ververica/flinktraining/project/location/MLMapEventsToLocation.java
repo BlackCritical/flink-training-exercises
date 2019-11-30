@@ -71,7 +71,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
      *
      * Since this is a RichFlatMapFunction on a keyed stream, the mapCountryToCount exists for every
      * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
-     * one with a tsunami and one without tsunami's!
+     * one with a tsunami's and one without tsunami's!
      *
      * @param country to update predictions
      * @param tsunami 1 if a tsunami happened 0 otherwise

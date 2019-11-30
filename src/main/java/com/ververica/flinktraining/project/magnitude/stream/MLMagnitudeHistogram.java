@@ -67,7 +67,7 @@ public class MLMagnitudeHistogram extends RichFlatMapFunction<Feature, Tuple4<Tu
      *
      * Since this is a RichFlatMapFunction on a keyed stream, the reviewedCount exists for every
      * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
-     * one with a tsunami and one without tsunami's!
+     * one with a tsunami's and one without tsunami's!
      *
      * @param reviewStatus 1 if reviewed 0 otherwise
      * @param tsunami 1 if a tsunami happened 0 otherwise
@@ -92,7 +92,7 @@ public class MLMagnitudeHistogram extends RichFlatMapFunction<Feature, Tuple4<Tu
      *
      * Since this is a RichFlatMapFunction on a keyed stream, the averageMagnitude exists for every
      * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
-     * one with a tsunami and one without tsunami's!
+     * one with a tsunami's and one without tsunami's!
      *
      * @param mag the magnitude of the earthquake feature
      * @param tsunami 1 if a tsunami happened 0 otherwise

@@ -65,9 +65,14 @@ The average value will be used as prediction.
 2. Prediction: Calculate the likelihood for the next earthquake feature to be reviewed.
 3. Prediction: Remembers how often every country name occurred and predicts next country, by guessing the country with the most appearances as next country.
 
-Since this is a RichFlatMapFunction on a keyed stream, the mapCountryToCount exists for every key group.
-This stream is keyed on the Tsunami property.
-That means, there are only two key groups one with a tsunami and one without tsunami's!
+Since all prediction algorithm are inside a RichFlatMapFunction on a keyed stream, predictions will be made for every key group individually.
+All those stream are keyed on the "tsunami" property.
+That means, there are only two key groups one with a tsunami's and one without tsunami's!
+
+All predictions are printed to the console!
 
 ##7. Create a visualization and prepare the demo
 Inside the visualization folder are 3 excel sheets as visualization.
+
+##8. Prepare the demo submission
+The video is inside the "video" folder!
