@@ -1,11 +1,11 @@
 package com.ververica.flinktraining.project;
 
 import com.ververica.flinktraining.exercises.datastream_java.utils.ExerciseBase;
-import com.ververica.flinktraining.project.location.MapEventsToLocation;
+import com.ververica.flinktraining.project.location.MLMapEventsToLocation;
 import com.ververica.flinktraining.project.location.MapEventsToLocationCoordinates;
-import com.ververica.flinktraining.project.magnitude.MagnitudeHistogram;
 import com.ververica.flinktraining.project.magnitude.MagnitudeNotNullFilter;
 import com.ververica.flinktraining.project.magnitude.MagnitudeTypeMap;
+import com.ververica.flinktraining.project.magnitude.stream.MLMagnitudeHistogram;
 import com.ververica.flinktraining.project.magnitude.stream.WindowCountHistogram;
 import com.ververica.flinktraining.project.magnitude.stream.WindowCountMagnitudeType;
 import com.ververica.flinktraining.project.model.EarthquakeCollection;
@@ -55,7 +55,7 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         SingleOutputStreamOperator<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> hist = earthquakes
                 .filter(new MagnitudeNotNullFilter())
                 .keyBy("properties.status")
-                .flatMap(new MagnitudeHistogram());
+                .flatMap(new MLMagnitudeHistogram());
 
 
         // key the stream by the coordinates provided in f0 inside a Tuple2
@@ -107,7 +107,8 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
 
         SingleOutputStreamOperator<Tuple3<String, Long, Long>> events = earthquakes
                 .flatMap(new MapEventsToLocationCoordinates()) // Simple mapping from Feature to -> [latitude, longitude, SIG, tsunami(1/0)]
-                .flatMap(new MapEventsToLocation()) // Map the longitude and latitude to the country with the smallest euclidean distance to the given latitude and longitude
+                .keyBy("f3")  // make ML predictions about countries with and without Tsunami's
+                .flatMap(new MLMapEventsToLocation()) // Map the longitude and latitude to the country with the smallest euclidean distance to the given latitude and longitude
                 .name("Country Name, SIG, Tsunami");
 
         // key by the country
