@@ -13,7 +13,7 @@ tmp
 *.class
 *.iml
 *.swp
-*.jar
+#*.jar
 *.log
 .DS_Store
 _site
