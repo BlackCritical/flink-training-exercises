@@ -4,10 +4,15 @@ This repository is a fork of the flink-training-exercise (https://github.com/ver
 A few dependencies were added.  
 One of them is org.projectlombok.  
 **IF YOU USE AN IDE LIKE INTELLIJ YOU WILL PROBABLY NEED THE LOMBOK PLUGIN.**
-**OTHERWISE YOU WILL SEE A LOT OF ERRORS IN THE com.ververica.flinktraining.project.model PACKAGE.**
+**OTHERWISE YOU WILL SEE A LOT OF ERRORS IN THE CODE.**
 **BUT THOSE ERRORS SHOULD NOT PREVENT YOU FROM COMPILING THE PROJECT!**
 
 ##1. and 2. Data Collection:
+I chosen earthquakes as my dataset.
+I queried these earthquake datasets from an open API called: https://earthquake.usgs.gov/fdsnws/event/1/
+For a documentation about the structure of the dataset you could look at this URL: https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php
+For a documentation about what each individual property stands for you could read through this URL: https://earthquake.usgs.gov/data/comcat/data-eventterms.php
+
 Inside the ./bigdatareader project is a main class called com.example.bigdatareader.BigDataReaderApplication, which starts a REST-Spring-Boot-Application.
 This Project is a Gradle Project which can be build by executing "gradle build" or "gradlew build" inside a shell opened in ./bigdatareader.
 
