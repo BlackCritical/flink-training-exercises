@@ -22,7 +22,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
     // The Location list will be read out of a small CSV File by every flink node once.
     private List<Location> locations = TransformEarthquakeJSON.readLocationsFromCSV(pathToLocations);
 
-    // map MinMag To MagnitudeCount And ReviewedCount
+    // map country name to count
     private MapState<String, Integer> mapCountryToCount;
     // count
     private ValueState<Integer> count;
@@ -48,7 +48,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
         String country = getCountry(value.f0, value.f1);
         count.update(count.value() != null ? count.value() + 1 : 1);
         System.out.println(String.format("Actual value #%d: %s", count.value(), country));
-        machineLearningPrediction3(country);
+        machineLearningPrediction3(country, value.f3);
         collector.collect(new Tuple3<>(country, value.f2, value.f3));
     }
 
@@ -65,7 +65,18 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
         return minName;
     }
 
-    private void machineLearningPrediction3(String country) throws Exception {
+    /**
+     * Remembers how often every country name occurred and predicts next country,
+     * by guessing the country with the most appearances as next country.
+     *
+     * Since this is a RichFlatMapFunction on a keyed stream, the mapCountryToCount exists for every
+     * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
+     * one with a tsunami and one without tsunami's!
+     *
+     * @param country to update predictions
+     * @param tsunami 1 if a tsunami happened 0 otherwise
+     */
+    private void machineLearningPrediction3(String country, long tsunami) throws Exception {
         Integer sum = mapCountryToCount.get(country);
         if (sum == null) {
             mapCountryToCount.put(country, 1);
@@ -74,7 +85,7 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
             mapCountryToCount.put(country, sum);
         }
         String nextCountryPrediction = getNextCountryPrediction();
-        System.out.println(String.format("Prediction for value #%d: %s", count.value() + 1, nextCountryPrediction));
+        System.out.println(String.format("Prediction for value %s Tsunami #%d: %s", getTsunamiText(tsunami), count.value() + 1, nextCountryPrediction));
     }
 
     private String getNextCountryPrediction() throws Exception {
@@ -90,6 +101,9 @@ public class MLMapEventsToLocation extends RichFlatMapFunction<Tuple4<Double, Do
         return nextPrediction;
     }
 
+    private String getTsunamiText(long tsunami) {
+        return tsunami == 1 ? "WITH" : "WITHOUT";
+    }
 
     private static double euclideanDistance(double p1x, double p1y, double p2x, double p2y) {
         return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2));

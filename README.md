@@ -52,8 +52,22 @@ The only minor differences are due to the fact that the streaming window size is
 That means, that 45 (813445 % 100 = 45) features are not processed, because they are drop after the stream completes/terminates.
 
 ##6. Study options for making predictions about 3 statistics
-I never wrote a single Machine Learning Algorithm in my life or had anything to do with this topic so far.
-I did not succeed in integrating an ML Algo into this application.
+I got no experience in the field of Machine Learning.
+Because of that i got not enough experience to use a ML library.
+I decided to implement 3 simple machine learning algorithm on my own:
+
+- com.ververica.flinktraining.project.magnitude.stream.MLMagnitudeHistogram.machineLearningPrediction1
+- com.ververica.flinktraining.project.magnitude.stream.MLMagnitudeHistogram.machineLearningPrediction2
+- com.ververica.flinktraining.project.location.MLMapEventsToLocation.machineLearningPrediction3
+
+1. Prediction: Calculates incrementally the average for all magnitudes processed so far.
+The average value will be used as prediction.  
+2. Prediction: Calculate the likelihood for the next earthquake feature to be reviewed.
+3. Prediction: Remembers how often every country name occurred and predicts next country, by guessing the country with the most appearances as next country.
+
+Since this is a RichFlatMapFunction on a keyed stream, the mapCountryToCount exists for every key group.
+This stream is keyed on the Tsunami property.
+That means, there are only two key groups one with a tsunami and one without tsunami's!
 
 ##7. Create a visualization and prepare the demo
 Inside the visualization folder are 3 excel sheets as visualization.

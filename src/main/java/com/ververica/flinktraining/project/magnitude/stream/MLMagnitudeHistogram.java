@@ -38,29 +38,41 @@ public class MLMagnitudeHistogram extends RichFlatMapFunction<Feature, Tuple4<Tu
     public void flatMap(Feature value, Collector<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> out) throws IOException {
         String magType = value.properties.magType;
         double mag = value.properties.mag;
+        long tsunami = value.properties.tsunami;
         int reviewed = isReviewed(value.properties.status);
 
         count.update(count.value() != null ? count.value() + 1 : 1);
-        System.out.println(String.format("Actual value #%d: %f", count.value(), mag));
+        System.out.println(String.format("Actual value %s Tsunami #%d: %f", getTsunamiText(tsunami), count.value(), mag));
         if (reviewed == 1) {
-            System.out.println(String.format("Actual value #%d was Reviewed.", count.value()));
+            System.out.println(String.format("Actual value %s Tsunami #%d was Reviewed.", getTsunamiText(tsunami), count.value()));
         } else {
-            System.out.println(String.format("Actual value #%d was NOT Reviewed.", count.value()));
+            System.out.println(String.format("Actual value %s Tsunami #%d was NOT Reviewed.", getTsunamiText(tsunami), count.value()));
         }
 
-        machineLearningPrediction1(mag);
+        machineLearningPrediction1(mag, tsunami);
+        machineLearningPrediction2(reviewed, tsunami);
 
         for (int minMagnitude : MAGNITUDES) {
             if (minMagnitude <= mag && mag < minMagnitude + 1) {  // find correct range
                 magType = magType != null ? magType : UNDEFINED;
                 out.collect(new Tuple4<>(new Tuple2<>(minMagnitude, minMagnitude + 1), 1, magType, reviewed));
-                machineLearningPrediction2(reviewed);
                 return;
             }
         }
     }
 
-    private void machineLearningPrediction2(int reviewStatus) throws IOException {
+    /**
+     * Calculate the likelihood for the next earthquake feature
+     * to be reviewed.
+     *
+     * Since this is a RichFlatMapFunction on a keyed stream, the reviewedCount exists for every
+     * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
+     * one with a tsunami and one without tsunami's!
+     *
+     * @param reviewStatus 1 if reviewed 0 otherwise
+     * @param tsunami 1 if a tsunami happened 0 otherwise
+     */
+    private void machineLearningPrediction2(int reviewStatus, long tsunami) throws IOException {
         Integer currentLikelihood = reviewedCount.value();
         int currentReviewedCount;
         if (currentLikelihood == null) {
@@ -71,10 +83,21 @@ public class MLMagnitudeHistogram extends RichFlatMapFunction<Feature, Tuple4<Tu
         reviewedCount.update(currentReviewedCount);
         double currentCount = count.value();
         double nextLikelihood = currentReviewedCount / currentCount;
-        System.out.println(String.format("Prediction: Value #%d will be reviewed with a likelihood of: %f", count.value() + 1, nextLikelihood));
+        System.out.println(String.format("Prediction: Value %s Tsunami #%d will be reviewed with a likelihood of: %f", getTsunamiText(tsunami), count.value() + 1, nextLikelihood));
     }
 
-    private void machineLearningPrediction1(double mag) throws IOException {
+    /**
+     * Calculates incrementally the average for all magnitudes processed so far.
+     * The average value will be used as prediction.
+     *
+     * Since this is a RichFlatMapFunction on a keyed stream, the averageMagnitude exists for every
+     * key group. This stream is keyed on the Tsunami property. That means, there are only two key groups
+     * one with a tsunami and one without tsunami's!
+     *
+     * @param mag the magnitude of the earthquake feature
+     * @param tsunami 1 if a tsunami happened 0 otherwise
+     */
+    private void machineLearningPrediction1(double mag, long tsunami) throws IOException {
         Double currentAverage = averageMagnitude.value();
         if (currentAverage == null) {
             averageMagnitude.update(mag);
@@ -84,7 +107,11 @@ public class MLMagnitudeHistogram extends RichFlatMapFunction<Feature, Tuple4<Tu
 
             averageMagnitude.update(nextAverage);
         }
-        System.out.println(String.format("Prediction for value #%d: %f", count.value() + 1, averageMagnitude.value()));
+        System.out.println(String.format("Prediction for value %s Tsunami #%d: %f", getTsunamiText(tsunami), count.value() + 1, averageMagnitude.value()));
+    }
+
+    private String getTsunamiText(long tsunami) {
+        return tsunami == 1 ? "WITH" : "WITHOUT";
     }
 
     /**
