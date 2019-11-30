@@ -54,10 +54,11 @@ public class EarthquakeStreamProjectExercise extends ExerciseBase {
         // f3 -> the frequency of reviewed earthquakes for the range given inside the Tuple2 (at this point still always 1 or 0)
         SingleOutputStreamOperator<Tuple4<Tuple2<Integer, Integer>, Integer, String, Integer>> hist = earthquakes
                 .filter(new MagnitudeNotNullFilter())
+                .keyBy("properties.status")
                 .flatMap(new MagnitudeHistogram());
 
 
-        // key the stream by the coordinates provided in f0 inside an Tuple2
+        // key the stream by the coordinates provided in f0 inside a Tuple2
         // discard f2 -> the magnitudeType from the input
         // Add up the magnitude and reviewed frequencies per window
         KeyedStream<Tuple3<Tuple2<Integer, Integer>, Integer, Integer>, Tuple> processedHist = hist
